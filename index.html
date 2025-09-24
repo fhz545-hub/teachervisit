@@ -50,7 +50,7 @@ h1{margin:10px 0 8px;color:var(--moe-green);font-family:"Cairo","Tajawal";font-s
 
 /* شريط أدوات Excel + قائمة المعلمين */
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-start;padding:8px 10px}
-.btn-ic{display:inline-flex;gap:8px;align-items:center;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--moe-dark);font-weight:800;cursor:pointer;font-size:clamp(12px,.6vw + 10px,14px)}
+.btn-ic{display:inline-flex;gap:8px;align-items:center;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--moe-dark);font-weight:800;cursor:pointer;font-size:clamp(12px,.6vw + 10px,14px);transition:transform .12s ease}
 .btn-ic:hover{transform:translateY(-1px)}
 .btn-ic svg{width:18px;height:18px}
 select.fld{height:38px}
@@ -64,12 +64,13 @@ select.fld{height:38px}
 .chip{background:#eaf7f4;border:1px dashed #cfe1dd;padding:4px 10px;border-radius:999px;font-size:clamp(11px,.6vw + 9px,12px);color:#0b6256}
 .visitLabel{font-family:"Cairo";font-weight:700;color:#0f685a;font-size:clamp(13px,.8vw + 10px,16px)}
 
-/* المؤشر الشامل (مسطرة أعلى الدوائر) + نسب الزيارات */
+/* المؤشر الشامل + نسب الزيارات */
 .hmeterTop{margin:8px auto 4px;text-align:center}
 .tooltip{position:relative;display:inline-block;cursor:help;margin-bottom:6px;font-weight:700;color:#0b534a}
 .tooltip .tiptext{visibility:hidden;width:290px;background:#0a5b50;color:#fff;text-align:center;border-radius:6px;padding:6px;position:absolute;z-index:2;bottom:125%;left:50%;transform:translateX(-50%);opacity:0;transition:opacity .3s}
 .tooltip:hover .tiptext{visibility:visible;opacity:1}
-.globalInline{margin-inline-start:8px;font-family:"Cairo";font-size:clamp(14px,1vw + 11px,18px);color:#0a5b50}
+.globalInline{margin-inline-start:8px;font-family:"Cairo";font-size:clamp(14px,1vw + 11px,18px);font-weight:800;transition:color .15s ease}
+.globalInline.good{color:#0f6a3b}.globalInline.mid{color:#a8620a}.globalInline.bad{color:#b42318}
 .visitPercents{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:4px}
 .visitPercents .badge{background:#f0faf6}
 
@@ -206,7 +207,7 @@ select.fld{height:38px}
         </button>
         <button class="btn-ic" id="btnExport" title="تنزيل القائمة">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 7v10M7 12h10"/></svg>
-          تنزيل القائمة
+        تنزيل القائمة
         </button>
         <button class="btn-ic" id="btnTemplate" title="قالب فارغ">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
@@ -217,7 +218,7 @@ select.fld{height:38px}
     </div>
   </div>
 
-  <!-- المؤشر الشامل + نسب الزيارات + (النسبة الشاملة بجوار العنوان) -->
+  <!-- المؤشر الشامل + النسبة بجوار العنوان + نسب الزيارات -->
   <div class="hmeterTop">
     <div class="tooltip">المؤشر الشامل للأداء <b id="globalPctInline" class="globalInline">0%</b>
       <span class="tiptext">مقياس تجميعي يُلخّص نتائج الزيارات الثلاث، ليعكس صورة شاملة لمستوى أداء المعلم وتقدمه المهني عبر العام الدراسي.</span>
@@ -358,7 +359,7 @@ select.fld{height:38px}
 
 <script>
 /* ===== رأس قابل للتعديل ===== */
-const LS_HEAD='moe_header_v13';
+const LS_HEAD='moe_header_v14';
 const headIds=['h-sa','h-moed','h-dir','h-school'];
 function loadHead(){const raw=localStorage.getItem(LS_HEAD); if(raw){try{const o=JSON.parse(raw); headIds.forEach(id=>{if(o[id]) document.getElementById(id).textContent=o[id];});}catch{}}}
 function saveHead(){const o={}; headIds.forEach(id=>o[id]=document.getElementById(id).textContent.trim()); localStorage.setItem(LS_HEAD,JSON.stringify(o)); alert('تم حفظ العناوين.');}
@@ -371,7 +372,7 @@ loadHead();
 /* ===== التاريخ الهجري العام ===== */
 (function(){try{const opt={weekday:'long',day:'numeric',month:'long',year:'numeric'};document.getElementById('hijriChip').textContent='التاريخ الهجري: '+new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',opt).format(new Date())+' هـ';}catch{}})();
 
-/* ===== Excel: استيراد/تصدير/قالب + قائمة المعلمين (تقوية قراءة الهوية) ===== */
+/* ===== Excel: استيراد/تصدير/قالب + قائمة المعلمين (قراءة هوية قوية) ===== */
 let teacherList=[];
 const tName=document.getElementById('tName'), tId=document.getElementById('tId'), tSpec=document.getElementById('tSpec');
 const degree=document.getElementById('degree'), exp=document.getElementById('exp');
@@ -451,7 +452,15 @@ const hThumb=document.getElementById('hThumb'), kpiPct=document.getElementById('
 const p1Span=document.getElementById('p1'), p2Span=document.getElementById('p2'), p3Span=document.getElementById('p3');
 const globalInline=document.getElementById('globalPctInline');
 function setVisitMeter(p){kpiPct.textContent=p+'%'; hThumb.style.left=p+'%';}
-function setGlobalMeter(p){globalThumb.style.left=p+'%'; globalInline.textContent=p+'%';}
+function setGlobalMeter(p){
+  globalThumb.style.left=p+'%'; 
+  globalInline.textContent=p+'%';
+  // تلوين ديناميكي مبهِر
+  globalInline.classList.remove('good','mid','bad');
+  if(p>=80) globalInline.classList.add('good');
+  else if(p>=50) globalInline.classList.add('mid');
+  else globalInline.classList.add('bad');
+}
 function setVisitPercents(p1,p2,p3){p1Span.textContent=p1+'%';p2Span.textContent=p2+'%';p3Span.textContent=p3+'%';}
 
 /* ===== جدول عملية التعليم والتعلّم ===== */
@@ -568,7 +577,7 @@ function calcAll(){
   const vPct = visitPct(activeVisit); setVisitMeter(vPct);
   // دوائر
   [1,2,3].forEach(v=> setDonut(v, visitPct(v)));
-  // المؤشر الشامل + عرض النسب + النسبة الشاملة (inline)
+  // المؤشر الشامل + عرض النسب + النسبة الشاملة (inline ملوّنة)
   const gpct = Math.round((p1+p2+p3)/3); setGlobalMeter(gpct); setVisitPercents(p1,p2,p3);
 
   // توصيات
