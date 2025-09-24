@@ -22,7 +22,7 @@
   --base: clamp(14px, 1.3vw + 10px, 16px);
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:#fff;color:var(--ink);font-family:"Tajawal",system-ui;font-size:var(--base)}
+html,body{margin:0;background:#fff;color:var(--ink);font-family:"Tajawal",system-ui;font-size:var(--base);min-height:100%}
 #page{width:min(1200px,100vw);margin-inline:auto}
 .wrap{padding:clamp(8px,2vw,16px)}
 .hidden{display:none}
@@ -63,14 +63,19 @@ select.fld{height:38px}
 .donut text{font-weight:800;fill:var(--moe-dark);font-size:14px}
 .chip{background:#eaf7f4;border:1px dashed #cfe1dd;padding:4px 10px;border-radius:999px;font-size:clamp(11px,.6vw + 9px,12px);color:#0b6256}
 .visitLabel{font-family:"Cairo";font-weight:700;color:#0f685a;font-size:clamp(13px,.8vw + 10px,16px)}
-.idChip{margin-top:6px;background:#f0faf6;border:1px dashed #cfe1dd;color:#0a5b50}
 
-/* المؤشر الشامل (مسطرة أعلى الدوائر) */
+/* المؤشر الشامل (مسطرة أعلى الدوائر) + نسب الزيارات */
 .hmeterTop{margin:8px auto 4px;text-align:center}
 .tooltip{position:relative;display:inline-block;cursor:help;margin-bottom:6px;font-weight:700;color:#0b534a}
 .tooltip .tiptext{visibility:hidden;width:290px;background:#0a5b50;color:#fff;text-align:center;border-radius:6px;padding:6px;position:absolute;z-index:2;bottom:125%;left:50%;transform:translateX(-50%);opacity:0;transition:opacity .3s}
 .tooltip:hover .tiptext{visibility:visible;opacity:1}
-.hbar{position:relative;width:min(700px,95vw);height:14px;border:1px solid var(--border);border-radius:999px;background:linear-gradient(90deg,#ef4444 0%,#f59e0b 50%,#16a34a 100%);margin:0 auto 6px}
+.globalInline{margin-inline-start:8px;font-family:"Cairo";font-size:clamp(14px,1vw + 11px,18px);color:#0a5b50}
+.visitPercents{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+.visitPercents .badge{background:#f0faf6}
+
+/* صف المسطرة */
+.globalRow{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+.hbar{position:relative;width:min(700px,95vw);height:14px;border:1px solid var(--border);border-radius:999px;background:linear-gradient(90deg,#ef4444 0%,#f59e0b 50%,#16a34a 100%);margin:4px auto 6px}
 .hthumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid #0a5b50}
 
 /* مؤشر الأداء الأفقي تحت الدوائر */
@@ -125,7 +130,7 @@ select.fld{height:38px}
 /* التوصيات */
 .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
 .card{border:1px solid var(--border);border-radius:12px;background:#fff;padding:10px}
-.card h4{margin:0 0 6px;color:var(--moe-dark);font-family:"Cairo"}
+.card h4{margin:0 0 6px;color:#0a5b50;font-family:"Cairo"}
 .list{font-size:13px;line-height:1.65;color:#184b44}
 
 /* تواقيع وإجراءات */
@@ -134,9 +139,8 @@ select.fld{height:38px}
 .signs th,.signs td{border:1px solid var(--line);padding:8px;background:#fff}
 .signs .line{display:inline-block;min-width:160px;border-bottom:1px dashed #9fb5b1;height:20px}
 .actions{display:flex;gap:8px;justify-content:center;align-items:center;margin:12px 0 6px;flex-wrap:wrap}
-.btn{display:inline-flex;gap:8px;align-items:center;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--moe-dark);font-weight:800;cursor:pointer;font-size:clamp(12px,.6vw + 10px,14px)}
-.btn svg{width:18px;height:18px}
-.btn.primary{background:var(--moe-green);color:#fff;border-color:var(--moe-green)}
+.btn{display:inline-flex;gap:8px;align-items:center;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;color:#0a5b50;font-weight:800;cursor:pointer;font-size:clamp(12px,.6vw + 10px,14px)}
+.btn.primary{background:var(--moe-green);color:#fff;border-color:#0f7a66}
 .print-mode{display:flex;gap:8px;align-items:center}
 .footer{margin:8px 0 14px;text-align:center;font-size:12.5px;color:#0b534a}
 
@@ -213,12 +217,19 @@ select.fld{height:38px}
     </div>
   </div>
 
-  <!-- المؤشر الشامل أعلى الدوائر -->
+  <!-- المؤشر الشامل + نسب الزيارات + (النسبة الشاملة بجوار العنوان) -->
   <div class="hmeterTop">
-    <div class="tooltip">المؤشر الشامل للأداء
+    <div class="tooltip">المؤشر الشامل للأداء <b id="globalPctInline" class="globalInline">0%</b>
       <span class="tiptext">مقياس تجميعي يُلخّص نتائج الزيارات الثلاث، ليعكس صورة شاملة لمستوى أداء المعلم وتقدمه المهني عبر العام الدراسي.</span>
     </div>
-    <div class="hbar"><div class="hthumb" id="globalThumb" style="left:0%"></div></div>
+    <div class="visitPercents">
+      <span class="badge">الأولى: <b id="p1">0%</b></span>
+      <span class="badge">الثانية: <b id="p2">0%</b></span>
+      <span class="badge">الثالثة: <b id="p3">0%</b></span>
+    </div>
+    <div class="globalRow">
+      <div class="hbar"><div class="hthumb" id="globalThumb" style="left:0%"></div></div>
+    </div>
   </div>
 
   <!-- الزيارات -->
@@ -256,7 +267,6 @@ select.fld{height:38px}
       <div class="visitLabel">الزيارة الثالثة</div>
     </div>
   </div>
-  <div style="text-align:center"><span class="badge idChip" id="idChip">الهوية: —</span></div>
 
   <!-- مؤشر الأداء للزيارة النشطة -->
   <div class="hmeter">
@@ -334,14 +344,8 @@ select.fld{height:38px}
         <option value="bw">أبيض وأسود</option>
       </select>
     </div>
-    <button class="btn" id="printBtn" title="طباعة A4">
-      <!-- أيقونة طباعة -->
-      طباعة A4
-    </button>
-    <button class="btn primary" id="saveBtn" title="حفظ PDF باسم المعلم">
-      <!-- أيقونة حفظ -->
-      حفظ PDF
-    </button>
+    <button class="btn" id="printBtn" title="طباعة A4">طباعة A4</button>
+    <button class="btn primary" id="saveBtn" title="حفظ PDF باسم المعلم">حفظ PDF</button>
     <button class="btn" id="waBtn" title="إرسال واتساب">واتساب</button>
   </div>
 
@@ -354,7 +358,7 @@ select.fld{height:38px}
 
 <script>
 /* ===== رأس قابل للتعديل ===== */
-const LS_HEAD='moe_header_v10';
+const LS_HEAD='moe_header_v13';
 const headIds=['h-sa','h-moed','h-dir','h-school'];
 function loadHead(){const raw=localStorage.getItem(LS_HEAD); if(raw){try{const o=JSON.parse(raw); headIds.forEach(id=>{if(o[id]) document.getElementById(id).textContent=o[id];});}catch{}}}
 function saveHead(){const o={}; headIds.forEach(id=>o[id]=document.getElementById(id).textContent.trim()); localStorage.setItem(LS_HEAD,JSON.stringify(o)); alert('تم حفظ العناوين.');}
@@ -367,11 +371,11 @@ loadHead();
 /* ===== التاريخ الهجري العام ===== */
 (function(){try{const opt={weekday:'long',day:'numeric',month:'long',year:'numeric'};document.getElementById('hijriChip').textContent='التاريخ الهجري: '+new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',opt).format(new Date())+' هـ';}catch{}})();
 
-/* ===== Excel: استيراد/تصدير/قالب + قائمة المعلمين ===== */
+/* ===== Excel: استيراد/تصدير/قالب + قائمة المعلمين (تقوية قراءة الهوية) ===== */
 let teacherList=[];
 const tName=document.getElementById('tName'), tId=document.getElementById('tId'), tSpec=document.getElementById('tSpec');
 const degree=document.getElementById('degree'), exp=document.getElementById('exp');
-const tSelect=document.getElementById('teacherSelect'), idChip=document.getElementById('idChip');
+const tSelect=document.getElementById('teacherSelect');
 
 document.getElementById('btnImport').addEventListener('click',()=>document.getElementById('excelInput').click());
 document.getElementById('excelInput').addEventListener('change', async (e)=>{
@@ -381,15 +385,34 @@ document.getElementById('excelInput').addEventListener('change', async (e)=>{
     const wb=XLSX.read(data); const sh=wb.Sheets[wb.SheetNames[0]];
     const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:''});
     if(!rows.length){alert('الملف فارغ');return;}
-    const headers=rows[0].map(h=>String(h).trim());
-    const idx=(rx)=>headers.findIndex(h=>rx.test(h));
-    teacherList=rows.slice(1).filter(r=>r.some(x=>String(x).trim()!=='')).map(r=>({
-      name:String(r[idx(/^(الاسم|name|fullname|full name)$/i)]??r[0]??'').trim(),
-      id:String(r[idx(/^(الهوية|id|national id)$/i)]??r[1]??'').toString().replace(/\D+/g,'').slice(0,10),
-      spec:String(r[idx(/^(التخصص|spec|specialization|subject)$/i)]??r[2]??'').trim(),
-      degree:String(r[idx(/^(المؤهل|degree|qualification)$/i)]??'').trim(),
-      exp:String(r[idx(/^(سنوات الخبرة|experience|years)$/i)]??'').trim()
-    })).filter(x=>x.name);
+    const headers=rows[0].map(h=>String(h).trim().toLowerCase());
+    const norm=(h)=>h.replace(/\s+/g,' ').replace(/[^\u0600-\u06FFa-z0-9 ]/gi,'').trim();
+    const findIdx=(...keys)=>headers.findIndex(h=>{const n=norm(h); return keys.some(k=> n===norm(k) || n.includes(norm(k)));});
+
+    const ixName=findIdx('الاسم','name','full name','fullname','اسم المعلم','اسم');
+    const ixId  =findIdx('الهوية','id','national id','رقم الهوية','رقم السجل','هوية');
+    const ixSpec=findIdx('التخصص','spec','specialization','subject','المادة','مادة');
+    const ixDeg =findIdx('المؤهل','qualification','degree');
+    const ixExp =findIdx('سنوات الخبرة','الخبرة','experience','years');
+
+    function tenDigitsFallback(row){
+      for(const c of row){ const s=String(c||'').replace(/\D+/g,''); if(/^\d{10}$/.test(s)) return s; }
+      return '';
+    }
+
+    teacherList = rows.slice(1)
+      .filter(r=>r.some(x=>String(x).trim()!==''))
+      .map(r=>{
+        const name=(ixName>-1? r[ixName] : (r[0]||'')).toString().trim();
+        let id=(ixId>-1? String(r[ixId]) : '').replace(/\D+/g,'');
+        if(!/^\d{10}$/.test(id)) id=tenDigitsFallback(r);
+        const spec=(ixSpec>-1? r[ixSpec] : (r[2]||'')).toString().trim();
+        const deg=(ixDeg>-1? r[ixDeg] : '').toString().trim();
+        const ex =(ixExp>-1? r[ixExp] : '').toString().trim();
+        return {name,id:id.slice(0,10),spec,degree:deg,exp:ex};
+      })
+      .filter(x=>x.name);
+
     rebuildSelect();
     if(teacherList.length){fillTeacher(teacherList[0]); tSelect.value="0";}
     alert('تم الاستيراد وتعبئة البيانات.');
@@ -407,11 +430,10 @@ document.getElementById('btnTemplate').addEventListener('click',()=>{
 });
 function rebuildSelect(){tSelect.innerHTML='<option value="">— اختر معلم —</option>';teacherList.forEach((t,i)=>{const op=document.createElement('option');op.value=i;op.textContent=t.name;tSelect.appendChild(op);});}
 tSelect.addEventListener('change',()=>{const v=tSelect.value;if(v==='')return;fillTeacher(teacherList[Number(v)]);});
-function fillTeacher(t){tName.value=t.name||'';tId.value=(t.id||'').replace(/\D+/g,'').slice(0,10);tSpec.value=t.spec||'';degree.value=t.degree||'';exp.value=t.exp||'';updateIdChip();updateSignNames();}
+function fillTeacher(t){tName.value=t.name||'';tId.value=(t.id||'').replace(/\D+/g,'').slice(0,10);tSpec.value=t.spec||'';degree.value=t.degree||'';exp.value=t.exp||'';updateSignNames();}
 
-/* ===== الهوية أسفل الدوائر ===== */
-document.getElementById('tId').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D+/g,'').slice(0,10);updateIdChip();});
-function updateIdChip(){idChip.textContent='الهوية: '+ ((tId.value||'—'));}
+/* تقييد إدخال الهوية يدويًا */
+document.getElementById('tId').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D+/g,'').slice(0,10);});
 
 /* ===== دوائر الزيارات + التاريخ الهجري للزيارة النشطة فقط ===== */
 const C=314; let activeVisit=1;
@@ -420,13 +442,17 @@ function setHijri(v,dateObj){const txt=hijriDateStr(dateObj||new Date()); docume
 [1,2,3].forEach(v=>setHijri(v,new Date()));
 function showOnlyActiveDate(){['v1h','v2h','v3h'].forEach((id,i)=>document.getElementById(id).classList.toggle('hidden',(i+1)!==activeVisit));}
 showOnlyActiveDate();
+
 function setDonut(v,p){const ring=document.querySelector('#v'+v+' .ring');const txt=document.getElementById('v'+v+'t');const color=p>=80?'url(#gGood)':(p>=50?'url(#gMid)':'url(#gBad)');ring.setAttribute('stroke',color);ring.setAttribute('stroke-dasharray',`${(p/100)*C} ${C}`);txt.textContent=p+'%';}
 ['v1','v2','v3'].forEach((id,i)=>{const el=document.getElementById(id);el.addEventListener('click',()=>{activeVisit=i+1;showOnlyActiveDate();buildTable();calcAll();});el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click();}});});
 
-/* ===== مؤشر الأداء (الزيارة الحالية) و(الشامل) ===== */
+/* ===== المؤشرات: الزيارة الحالية + الشامل + نسب الزيارات ===== */
 const hThumb=document.getElementById('hThumb'), kpiPct=document.getElementById('kpiPct'), globalThumb=document.getElementById('globalThumb');
+const p1Span=document.getElementById('p1'), p2Span=document.getElementById('p2'), p3Span=document.getElementById('p3');
+const globalInline=document.getElementById('globalPctInline');
 function setVisitMeter(p){kpiPct.textContent=p+'%'; hThumb.style.left=p+'%';}
-function setGlobalMeter(p){globalThumb.style.left=p+'%';}
+function setGlobalMeter(p){globalThumb.style.left=p+'%'; globalInline.textContent=p+'%';}
+function setVisitPercents(p1,p2,p3){p1Span.textContent=p1+'%';p2Span.textContent=p2+'%';p3Span.textContent=p3+'%';}
 
 /* ===== جدول عملية التعليم والتعلّم ===== */
 const fields=[
@@ -534,16 +560,18 @@ function updateToolsSummary(){
 }
 buildTools();
 
-/* ===== توصيات تلقائية ===== */
+/* ===== توصيات تلقائية + حساب المؤشرات ===== */
 function calcAll(){
-  // نسب الزيارة النشطة
+  // نسب الزيارات
+  const p1 = visitPct(1), p2 = visitPct(2), p3 = visitPct(3);
+  // الزيارة الحالية
   const vPct = visitPct(activeVisit); setVisitMeter(vPct);
-  // تحديث الدوائر الثلاث
+  // دوائر
   [1,2,3].forEach(v=> setDonut(v, visitPct(v)));
-  // المؤشر الشامل: متوسط الثلاث
-  const gpct = Math.round((visitPct(1)+visitPct(2)+visitPct(3))/3); setGlobalMeter(gpct);
+  // المؤشر الشامل + عرض النسب + النسبة الشاملة (inline)
+  const gpct = Math.round((p1+p2+p3)/3); setGlobalMeter(gpct); setVisitPercents(p1,p2,p3);
 
-  // جوانب التميز/الاحتياجات
+  // توصيات
   const ok=[], dev=[];
   fields.forEach((f,fi)=>{const vals=store[activeVisit][fi].filter(v=>v>0); if(!vals.length) return; const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
     if(avg>=2.5) ok.push(`• ${f.name}: أداء متقدّم ومتسق.`);
@@ -624,7 +652,8 @@ ${school}
 المدير: ${principal}
 الاسم: ${name} | الهوية: ${id} | التخصص: ${spec}
 الزيارة ${lbl}: بتاريخ ${d}
-نِسب الزيارات: الأولى %${p1}، الثانية %${p2}، الثالثة %${p3}`;
+نِسب الزيارات: الأولى %${p1}، الثانية %${p2}، الثالثة %${p3}
+المؤشر الشامل للأداء: %${Math.round((p1+p2+p3)/3)}`;
   window.open('https://api.whatsapp.com/send?text='+encodeURIComponent(msg),'_blank');
 });
 
@@ -635,13 +664,11 @@ toTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:"smooth"}));
 
 /* ===== تفعيل تاريخ الزيارة الحالية افتراضيًا ===== */
 function refreshActiveDate(){showOnlyActiveDate();}
-function showOnlyActiveDate(){['v1h','v2h','v3h'].forEach((id,i)=>document.getElementById(id).classList.toggle('hidden',(i+1)!==activeVisit));}
 refreshActiveDate();
 
 /* ===== تهيئة أولية ===== */
 function updateAllHijri(){[1,2,3].forEach(v=>setHijri(v,new Date()));}
-function updateIdChip(){idChip.textContent='الهوية: '+ ((tId.value||'—'));} // أعيد تعريفها للأعلى لكن هنا تضمن النداء
-function firstRender(){updateAllHijri();updateIdChip();updateSignNames();calcAll();}
+function firstRender(){updateAllHijri();updateSignNames();calcAll();}
 firstRender();
 
 /* ===== تحرير اسم المدير ===== */
