@@ -56,6 +56,7 @@ h1{margin:10px 0 8px;color:var(--moe-green);font-family:"Cairo","Tajawal";font-s
 .btn-ic{display:inline-flex;gap:8px;align-items:center;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--moe-dark);font-weight:800;cursor:pointer;font-size:clamp(12px,.6vw + 10px,14px);transition:transform .12s ease}
 .btn-ic:hover{transform:translateY(-1px)}
 .btn-ic svg{width:18px;height:18px}
+a.btn-ic{text-decoration:none}
 select.fld{height:38px}
 
 /* دوائر الزيارات */
@@ -232,6 +233,15 @@ select.fld{height:38px}
           قالب
         </button>
         <select class="fld" id="teacherSelect" title="قائمة المعلمين"><option value="">— اختر معلم —</option></select>
+
+        <!-- الأيقونة/الرابط المطلوب بجوار القائمة -->
+        <a class="btn-ic" href="https://fhz545-hub.github.io/taqyeem/" target="_blank" rel="noopener" title="لمشاهدة تقييم الأداء الوظيفي">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          (لمشاهدة تقييم الأداء الوظيفي)
+        </a>
       </div>
     </div>
   </div>
