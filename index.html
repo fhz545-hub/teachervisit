@@ -151,7 +151,7 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
 
 /* لوحة الأسماء (عدسة) */
 #teachersPanel{position:fixed;inset:auto 0 0 0;margin:auto;max-width:min(780px,96vw);background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.2);display:none;z-index:1200}
-.tp-head{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--border);background:#var(--moe-lite)}
+.tp-head{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--border)}
 .tp-body{padding:10px;max-height:60vh;overflow:auto}
 .tp-search{display:flex;gap:8px;align-items:center;margin-bottom:10px}
 .tp-list{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:8px}
@@ -167,8 +167,13 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
 #toTop{bottom:20px;left:20px}
 #toBottom{bottom:20px;right:20px}
 
-/* فوتر */
-.footer{margin:8px 0 14px;text-align:center;font-size:11px;color:#0b534a}
+/* فوتر الحقوق (أسفل الصفحة) */
+.footer-rights{
+  margin:8px 0 14px;
+  text-align:center;
+  font-size:11.5px;
+  color:#0b534a;
+}
 
 /* تجاوب */
 @media (max-width:720px){ .grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:6px} .tp-list{grid-template-columns:1fr} }
@@ -181,7 +186,7 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
   .donut{width:92px;height:auto}
   .tbl th,.tbl td{padding:5px;font-size:11.5px}
   .item-brief{font-size:10.5px}
-  .no-print, .bottom-actions, #approvedPanel, #teachersPanel { display:none !important }
+  .no-print, .bottom-actions, #approvedPanel, #teachersPanel, .footer-rights { display:none !important }
   .printMark{display:block !important}
   #page{width:210mm}
 }
@@ -253,12 +258,12 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
     <div class="visitCard">
       <span id="done2" class="done-badge">منتهية</span>
       <svg class="donut" id="v2" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="none" stroke="#eef3f2" stroke-width="12"/><circle cx="60" cy="60" r="50" fill="none" stroke="#16a34a" stroke-width="12" stroke-dasharray="0 314" stroke-linecap="round" class="ring"/><text x="60" y="64" text-anchor="middle" id="v2t">0%</text></svg>
-      <div class="chip hidden" id="v2h">—</div><div class="visitLabel">الزيارة الثانية</div>
+      <div class="chip" id="v2h">—</div><div class="visitLabel">الزيارة الثانية</div>
     </div>
     <div class="visitCard">
       <span id="done3" class="done-badge">منتهية</span>
       <svg class="donut" id="v3" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="none" stroke="#eef3f2" stroke-width="12"/><circle cx="60" cy="60" r="50" fill="none" stroke="#16a34a" stroke-width="12" stroke-dasharray="0 314" stroke-linecap="round" class="ring"/><text x="60" y="64" text-anchor="middle" id="v3t">0%</text></svg>
-      <div class="chip hidden" id="v3h">—</div><div class="visitLabel">الزيارة الثالثة</div>
+      <div class="chip" id="v3h">—</div><div class="visitLabel">الزيارة الثالثة</div>
     </div>
   </div>
 
@@ -353,7 +358,11 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
   </div>
 
   <div id="printMark" class="printMark">مبادرة دعم اليعقوبي الثانوي — تاريخ الطباعة: <span id="printHijri">—</span></div>
-  <div class="footer no-snap">© مبادرة مدرسة اليعقوبي الثانوية بالخبر — تنفيذ وتصميم: فهد حامد الزهراني</div>
+
+  <!-- فوتر الحقوق (أسفل الصفحة) — مخفي في الطباعة/الحفظ -->
+  <div class="footer-rights no-print">
+    مبادرة مدرسة اليعقوبي الثانوية بالخبر — تنفيذ وتصميم: فهد حامد الزهراني
+  </div>
 
 </div></div>
 
@@ -384,7 +393,7 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
 <script>
 /* مفاتيح التخزين */
 const LS_HEAD='moe_header_v14';
-const LS_FORMS='moe_teacher_forms_v3';
+const LS_FORMS='moe_teacher_forms_v4'; // v4 لتضمين تحسينات التوصيات
 const LS_LAST='moe_last_teacher';
 const LS_WA='moe_wa_num_v1';
 const LS_TEACHERS='moe_teacher_list_v1';
@@ -600,14 +609,20 @@ function updateToolsSummary(){
   meta.textContent=`${total} أداة • مفعل: ${g} • إلى حد ما: ${a} • غير مفعل: ${r}`;
 }
 
-/* توصيات */
+/* توصيات — قوالب مختصرة حسب المستوى */
+const phrase = {
+  strong: (n)=> `إبداع ملحوظ في «${n}» يعكس أثرًا إيجابيًا.`,
+  mid   : (n)=> `خطوات جيدة في «${n}» تحتاج تعزيزًا واستمرارية.`,
+  weak  : (n)=> `ضرورة إعادة النظر وتطوير «${n}» بشكل عاجل.`
+};
 function buildRecommendationsFor(visit){
   const ok=[], dev=[];
   fields.forEach((f,fi)=>{
-    const vals=store[visit][fi].filter(v=>v>0); if(!vals.length) return;
-    const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
-    if(avg>=2.5) ok.push(`تميز في ${f.name}: ممارسات مستقرة وأثر ظاهر.`);
-    if(avg<=2)   dev.push(`تعزيز ${f.name}: ضبط التطبيق والمتابعة خطوة بخطوة.`);
+    const vals=store[visit][fi]; if(!vals || !vals.length) return;
+    const avg=vals.filter(v=>v>0).reduce((a,b)=>a+b,0)/(vals.filter(v=>v>0).length||1);
+    if(avg>=2.5) ok.push( phrase.strong(f.name) );
+    else if(avg>=1.5) ok.push( phrase.mid(f.name) );
+    else if(avg>0) dev.push( phrase.weak(f.name) );
   });
   const sets=[...document.querySelectorAll('.pills')];
   const valOf=set=> Number((set.querySelector('.pill.active')||{dataset:{v:0}}).dataset.v);
@@ -650,7 +665,15 @@ let activeVisit=1;
 ['v1','v2','v3'].forEach((id,i)=>{const el=document.getElementById(id);el.addEventListener('click',()=>{activeVisit=i+1;toggleChipVisibility();buildTable();renderToolsForVisit();calcAll();saveForm();});});
 ['v1h','v2h','v3h'].forEach((id,i)=>{document.getElementById(id).addEventListener('click',()=>{setChip(i+1,hijriDateStr(new Date())); saveForm();});});
 function setChip(v,txt){document.getElementById('v'+v+'h').textContent=txt; document.getElementById('sh'+v).textContent=txt;}
-function toggleChipVisibility(){['v1h','v2h','v3h'].forEach((id,i)=>document.getElementById(id).classList.toggle('hidden',(i+1)!==activeVisit));}
+function toggleChipVisibility(){
+  // تُظهر التواريخ لكل زيارة مُعتمدة حتى إن لم تكن الزيارة نشطة
+  const rec=getFormRecord(); const vis=(rec&&rec.visits)||{};
+  [1,2,3].forEach(v=>{
+    const chip=document.getElementById('v'+v+'h');
+    if(vis[v]?.finalized){ chip.classList.remove('hidden'); }
+    else { chip.classList.toggle('hidden', v!==activeVisit); }
+  });
+}
 function activeVisitHijri(){ const lbl=activeVisit===1?'الأولى':activeVisit===2?'الثانية':'الثالثة'; const d=document.getElementById('v'+activeVisit+'h').textContent||'—'; return {lbl,d}; }
 
 /* أدوات الزيارة */
@@ -683,7 +706,8 @@ function loadFormForCurrentTeacher(){
     [1,2,3].forEach(v=>{
       const vv=rec.visits[v]||{};
       if(vv.finalized){
-        if(vv.ratings) store[v]=vv.ratings;
+        // تحميل تقييمات الزيارة المُعتمدة وأدواتها وتاريخها
+        store[v]=vv.ratings || zeroMatrix();
         setChip(v, vv.date || '—');
         document.getElementById('done'+v).style.display='inline-block';
       }else{
@@ -704,8 +728,10 @@ function saveForm(){
   all[key].teacher = {name:tName.value||'', id:tId.value||'', spec:tSpec.value||'', degree:degree.value||'', exp:exp.value||'', school:document.getElementById('h-school').textContent||''};
   [1,2,3].forEach(v=>{
     if(!all[key].visits[v]) all[key].visits[v]={};
-    if(all[key].visits[v].finalized){ all[key].visits[v].ratings = store[v]; }
+    // تحديث التاريخ المعروض دائمًا
     all[key].visits[v].date = document.getElementById('v'+v+'h').textContent||'—';
+    // لا نحفظ التقييمات إلا إن كانت الزيارة معتمدة
+    if(all[key].visits[v].finalized){ all[key].visits[v].ratings = store[v]; }
   });
   localStorage.setItem(LS_LAST,key); writeAll(all); refreshApprovedPanel();
 }
@@ -723,6 +749,7 @@ document.getElementById('finishVisitBtn').addEventListener('click',()=>{
   all[key].visits[activeVisit].savedAt = new Date().toISOString();
   writeAll(all);
   document.getElementById('done'+activeVisit).style.display='inline-block';
+  toggleChipVisibility();
   calcAll();
   alert('تم اعتماد الزيارة وحفظ جميع البيانات.');
 });
@@ -737,6 +764,7 @@ document.getElementById('btnDeleteVisit').addEventListener('click',()=>{
   writeAll(all);
   zeroVisit(activeVisit); renderToolsForVisit(); calcAll();
   document.getElementById('done'+activeVisit).style.display='none';
+  toggleChipVisibility();
   alert('تم حذف بيانات هذه الزيارة لهذا المعلم.');
 });
 
@@ -752,6 +780,7 @@ document.getElementById('btnClearAll').addEventListener('click',()=>{
   document.getElementById('approvedList').innerHTML='—'; document.getElementById('approvedPanel').style.display='none';
   tName.value=''; tId.value=''; tSpec.value=''; degree.value=''; exp.value='';
   updateSignNames();
+  toggleChipVisibility();
   alert('تم مسح جميع البيانات بما فيها قائمة الأسماء.');
 });
 
