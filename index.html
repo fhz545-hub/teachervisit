@@ -49,7 +49,7 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
 .col-3{grid-column:span 3/span 3}.col-12{grid-column:span 12/span 12}
 
 /* أزرار عامة */
-.btn-ic{display:inline-flex;gap:8px;align-items:center;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;color:#0b5e54;font-weight:800;cursor:pointer;font-size:clamp(12px,.6vw + 10px,14px);transition:transform .12s ease;text-decoration:none}
+.btn-ic{display:inline-flex;gap:8px;align-items:center;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;color:#0b5e54;font-weight:800;cursor:pointer;font-size:clamp(12px,.6vw + 10px,14px);transition:transform .12s ease,text-shadow .12s ease}
 .btn-ic:hover{transform:translateY(-1px)}
 .btn-ic svg{width:18px;height:18px}
 .btn-ic.tiny{padding:6px 8px}
@@ -162,10 +162,17 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
 /* شارة الطباعة */
 .printMark{display:none;text-align:center;margin:6px 0 2px;color:#184b44;font-size:10px}
 
-/* أزرار الصعود/النزول */
-#toTop,#toBottom{position:fixed;padding:12px;border:none;border-radius:50%;background:#0f7a66;color:#fff;font-size:18px;cursor:pointer;display:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.15)}
-#toTop{bottom:20px;left:20px}
-#toBottom{bottom:20px;right:20px}
+/* أزرار الصعود/النزول (تحسين الحركة والملمس) */
+#toTop,#toBottom{
+  position:fixed;bottom:20px;padding:12px;border:none;border-radius:50%;
+  background:#0f7a66;color:#fff;font-size:18px;cursor:pointer;display:none;z-index:999;
+  box-shadow:0 8px 20px rgba(0,0,0,.18);
+  transition:transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+  opacity:.95
+}
+#toTop{left:20px}
+#toBottom{right:20px}
+#toTop:hover,#toBottom:hover{transform:translateY(-2px) scale(1.04); box-shadow:0 12px 28px rgba(0,0,0,.22)}
 
 /* فوتر الحقوق (أسفل الصفحة) */
 .footer-rights{
@@ -343,15 +350,15 @@ body.snapshot .no-print{ display:none !important }
   <!-- الأزرار السفلية (موحدة اللون) -->
   <div class="bottom-actions no-print">
     <button class="btn-ic" id="finishVisitBtn" title="اعتماد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>اعتماد</button>
-    <button class="btn-ic" id="printBtn" title="طباعة A4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1 2 2h-2"/><path d="M6 14h12v8H6z"/></svg>طباعة</button>
-    <button class="btn-ic" id="saveBtn" title="حفظ PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11ل5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21V13H7v8"/><path d="M7 3v4h8"/></svg>حفظ PDF</button>
+    <button class="btn-ic" id="printBtn" title="طباعة A4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>طباعة</button>
+    <button class="btn-ic" id="saveBtn" title="حفظ PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21V13H7v8"/><path d="M7 3v4h8"/></svg>حفظ PDF</button>
 
     <span style="display:inline-flex;align-items:center;gap:6px">
       <button class="btn-ic" id="waBtn" title="واتساب">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 12.1A9.5 9.5 0 1 1 12 2.5a9.5 9.5 0 0 1 9.5 9.6Z"/><path d="m3.5 20.5 1.6-5.6"/><path d="M8.5 8.5c1 2.5 3.5 4.5 6 5l1.5-1.5"/></svg>
       </button>
       <button class="inline-pen" id="waEdit" title="تعديل رقم واتساب">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19ل-4 1 1-4Z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </button>
     </span>
 
@@ -395,20 +402,15 @@ body.snapshot .no-print{ display:none !important }
 
 <script>
 /* ==============================
-   تخزين دائم: IndexedDB + هجرة من localStorage
+   تخزين دائم: IndexedDB
    ============================== */
-const DB_NAME = 'yaqoobi_observations';
-const DB_VER  = 1;
-const STORE   = 'teachers'; // key = teacherId (أو بديل من الاسم)
-const LS_HEAD='moe_header_v14';
-const LS_FORMS_OLD_KEYS=['moe_teacher_forms_v4','moe_teacher_forms_v3','moe_teacher_forms_v2','moe_teacher_forms_v1'];
-const LS_LAST='moe_last_teacher';
-const LS_WA='moe_wa_num_v1';
-const LS_TEACHERS='moe_teacher_list_v1';
+const DB_NAME='yaqoobi_observations';
+const DB_VER=1;
+const STORE='teachers';
 
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open(DB_NAME, DB_VER);
+    const req=indexedDB.open(DB_NAME,DB_VER);
     req.onupgradeneeded=(e)=>{
       const db=e.target.result;
       if(!db.objectStoreNames.contains(STORE)){
@@ -420,14 +422,14 @@ function openDB(){
     req.onerror=()=>reject(req.error);
   });
 }
-async function dbGetTeacher(teacherId){
+async function dbGetTeacher(id){
   const db=await openDB();
   return new Promise((resolve,reject)=>{
     const tx=db.transaction(STORE,'readonly');
     const os=tx.objectStore(STORE);
-    const r=os.get(teacherId);
+    const r=os.get(id);
     r.onsuccess=()=>resolve(r.result||null);
-    r.onerror =()=>reject(r.error);
+    r.onerror=()=>reject(r.error);
   });
 }
 async function dbPutTeacher(record){
@@ -437,96 +439,84 @@ async function dbPutTeacher(record){
     const os=tx.objectStore(STORE);
     const r=os.put(record);
     r.onsuccess=()=>resolve(true);
-    r.onerror =()=>reject(r.error);
+    r.onerror=()=>reject(r.error);
   });
 }
-async function dbDeleteAll(){
+async function dbClearAll(){
   const db=await openDB();
   return new Promise((resolve,reject)=>{
     const tx=db.transaction(STORE,'readwrite');
     const os=tx.objectStore(STORE);
     const r=os.clear();
     r.onsuccess=()=>resolve(true);
-    r.onerror =()=>reject(r.error);
+    r.onerror=()=>reject(r.error);
   });
 }
 
-/* هجرة بيانات قديمة من localStorage -> IndexedDB (مرة واحدة) */
-(async function migrateFromLocalStorage(){
-  // لو وجدنا أي معلّم في IndexedDB نكتفي
-  const db=await openDB();
-  let alreadyHas=false;
-  await new Promise((res)=>{
-    const tx=db.transaction(STORE,'readonly');
-    const os=tx.objectStore(STORE);
-    const req=os.openCursor();
-    req.onsuccess=()=>{ const cur=req.result; if(cur){alreadyHas=true; res();} else res(); };
-    req.onerror=()=>res();
-  });
-  if(alreadyHas) return;
+/* مفاتيح إضافية قديمة */
+const LS_HEAD='moe_header_v14';
+const LS_TEACHERS='moe_teacher_list_v1';
+const LS_LAST='moe_last_teacher';
+const LS_WA='moe_wa_num_v1';
 
-  // جرّب قراءة المفاتيح القديمة
-  let all=null;
-  for(const k of LS_FORMS_OLD_KEYS){
-    try{
-      const raw=localStorage.getItem(k);
-      if(raw){ all=JSON.parse(raw); break; }
-    }catch{}
-  }
-  if(!all) return;
-
-  // أنقل لكل معلّم: أنشئ teacherId ثابت (الهوية إن وجدت وإلا اسم)
-  const entries=Object.entries(all);
-  for(const [key,rec] of entries){
-    const name = rec?.teacher?.name?.trim() || key.split('|')[0] || '—';
-    const idRaw= (rec?.teacher?.id||'').toString().replace(/\D+/g,'');
-    const teacherId = /^\d{10}$/.test(idRaw) ? idRaw : ('name:' + name.replace(/\s+/g,' ').trim());
-    const out = {
-      teacherId,
-      name,
-      nationalId: idRaw || '',
-      spec: rec?.teacher?.spec || '',
-      degree: rec?.teacher?.degree || '',
-      exp: rec?.teacher?.exp || '',
-      school: rec?.teacher?.school || '',
-      visits: {
-        1: rec?.visits?.[1] || {finalized:false,date:'—'},
-        2: rec?.visits?.[2] || {finalized:false,date:'—'},
-        3: rec?.visits?.[3] || {finalized:false,date:'—'}
-      },
-      savedAt: new Date().toISOString()
-    };
-    try{ await dbPutTeacher(out); }catch(e){ console.warn('Migration put error',e); }
-  }
-})();
-
-/* أدوات مساعدة المفاتيح */
+/* هوية المعلم */
 function normalizedTeacherId(){
-  const id = (document.getElementById('tId').value||'').replace(/\D+/g,'');
+  const id=(document.getElementById('tId').value||'').replace(/\D+/g,'');
   if(/^\d{10}$/.test(id)) return id;
   const name=(document.getElementById('tName').value||'').trim();
-  return name ? ('name:' + name.replace(/\s+/g,' ')) : '';
+  return name?('name:'+name.replace(/\s+/g,' ').trim()):'';
 }
 
-/* الهويدر القابل للتحرير */
-function saveHead(){const o={hsa:document.getElementById('h-sa').textContent.trim(),hmo:document.getElementById('h-moed').textContent.trim(),hdir:document.getElementById('h-dir').textContent.trim(),hschool:document.getElementById('h-school').textContent.trim()};localStorage.setItem(LS_HEAD,JSON.stringify(o));}
-(function loadHead(){const raw=localStorage.getItem(LS_HEAD); if(!raw) return; try{const o=JSON.parse(raw); if(o.hsa)document.getElementById('h-sa').textContent=o.hsa; if(o.hmo)document.getElementById('h-moed').textContent=o.hmo; if(o.hdir)document.getElementById('h-dir').textContent=o.hdir; if(o.hschool)document.getElementById('h-school').textContent=o.hschool;}catch{}})();
+/* رأس قابل للتحرير */
+function saveHead(){
+  const o={
+    hsa:document.getElementById('h-sa').textContent.trim(),
+    hmo:document.getElementById('h-moed').textContent.trim(),
+    hdir:document.getElementById('h-dir').textContent.trim(),
+    hschool:document.getElementById('h-school').textContent.trim()
+  };
+  localStorage.setItem(LS_HEAD,JSON.stringify(o));
+}
+(function loadHead(){
+  const raw=localStorage.getItem(LS_HEAD); if(!raw) return;
+  try{
+    const o=JSON.parse(raw);
+    if(o.hsa)document.getElementById('h-sa').textContent=o.hsa;
+    if(o.hmo)document.getElementById('h-moed').textContent=o.hmo;
+    if(o.hdir)document.getElementById('h-dir').textContent=o.hdir;
+    if(o.hschool)document.getElementById('h-school').textContent=o.hschool;
+  }catch{}
+})();
 document.getElementById('penDir').addEventListener('click',()=>toggleEdit('h-dir'));
 document.getElementById('penSchool').addEventListener('click',()=>toggleEdit('h-school'));
-function toggleEdit(id){const el=document.getElementById(id); const on=el.getAttribute('contenteditable')==='true'; el.setAttribute('contenteditable', on?'false':'true'); if(on) saveHead(); el.focus();}
+function toggleEdit(id){
+  const el=document.getElementById(id);
+  const on=el.getAttribute('contenteditable')==='true';
+  el.setAttribute('contenteditable', on?'false':'true');
+  if(on) saveHead();
+  el.focus();
+}
 
 /* التاريخ الهجري */
-function hijriNow(){ try{const opt={weekday:'long',day:'numeric',month:'long',year:'numeric'}; return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',opt).format(new Date()); }catch{return '—';}}
-function hijriDateStr(d){ try{const opt={weekday:'long',day:'numeric',month:'long',year:'numeric'}; return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',opt).format(d);}catch{return '—';}}
+function hijriNow(){
+  try{const opt={weekday:'long',day:'numeric',month:'long',year:'numeric'};
+    return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',opt).format(new Date());
+  }catch{return '—';}
+}
+function hijriDateStr(d){
+  try{const opt={weekday:'long',day:'numeric',month:'long',year:'numeric'};
+    return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',opt).format(d);
+  }catch{return '—';}
+}
 document.getElementById('hijriChip').textContent='التاريخ الهجري: '+hijriNow();
 
 /* واتساب */
-let waNumber = localStorage.getItem(LS_WA) || '966504532489';
+let waNumber=localStorage.getItem(LS_WA)||'966504532489';
 document.getElementById('waEdit').addEventListener('click',()=>{
-  const v = prompt('رقم واتساب الافتراضي (مع مفتاح الدولة):', waNumber);
-  if(v && /^\d{8,15}$/.test(v)){ waNumber=v; localStorage.setItem(LS_WA,waNumber); alert('تم حفظ رقم واتساب.'); }
+  const v=prompt('رقم واتساب الافتراضي (مع مفتاح الدولة):',waNumber);
+  if(v && /^\d{8,15}$/.test(v)){waNumber=v;localStorage.setItem(LS_WA,waNumber);alert('تم حفظ رقم واتساب.');}
 });
-document.getElementById('waBtn').addEventListener('click', ()=>{
+document.getElementById('waBtn').addEventListener('click',()=>{
   const name=(tName.value||'—').trim(), spec=(tSpec.value||'—').trim(), id=(tId.value||'—').trim();
   const p1=visitPct(1), p2=visitPct(2), p3=visitPct(3);
   const school=document.getElementById('h-school').textContent.trim();
@@ -545,7 +535,7 @@ ${dv}`;
   window.open('https://api.whatsapp.com/send?phone='+waNumber+'&text='+encodeURIComponent(msg),'_blank');
 });
 
-/* كشف المعلمين + استيراد */
+/* كشف الأسماء + استيراد */
 let teacherList=[];
 const tName=document.getElementById('tName'), tId=document.getElementById('tId'), tSpec=document.getElementById('tSpec');
 const degree=document.getElementById('degree'), exp=document.getElementById('exp');
@@ -572,7 +562,7 @@ function handleExcelImport(e){
     const ixDeg=findIdx('المؤهل','qualification','degree');
     const ixExp=findIdx('سنوات الخبرة','الخبرة','experience','years');
     function tenDigitsFallback(row){for(const c of row){const s=String(c||'').replace(/\D+/g,''); if(/^\d{10}$/.test(s)) return s;} return '';}
-    const list = rows.slice(1)
+    const list=rows.slice(1)
       .filter(r=>r.some(x=>String(x).trim()!==''))
       .map(r=>{
         const name=(ixName>-1? r[ixName] : (r[0]||'')).toString().trim();
@@ -583,8 +573,7 @@ function handleExcelImport(e){
         return {name,id:id.slice(0,10),spec,degree:deg,exp:ex};
       })
       .filter(x=>x.name);
-
-    teacherList = list;
+    teacherList=list;
     localStorage.setItem(LS_TEACHERS, JSON.stringify(teacherList));
     renderTeachers('');
     alert('تم الاستيراد، استخدم البحث لاختيار المعلم.');
@@ -607,7 +596,7 @@ function renderTeachers(q){
     .forEach((t,i)=>{
       const div=document.createElement('div'); div.className='tp-item';
       div.innerHTML=`<b>${t.name}</b><span style="opacity:.8">${t.id||'—'}</span>`;
-      div.addEventListener('click',()=>{ tp.style.display='none'; fillTeacher(t); localStorage.setItem(LS_LAST, normalizedTeacherId()); });
+      div.addEventListener('click',()=>{ tp.style.display='none'; fillTeacher(t); });
       tpList.appendChild(div);
     });
 }
@@ -656,6 +645,7 @@ function clone(o){ return JSON.parse(JSON.stringify(o)); }
 
 let store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()};
 let activeVisit=1;
+let loadedRecord=null; // آخر سجل محمّل
 
 /* بناء الجدول */
 function buildTable(){
@@ -671,7 +661,7 @@ function buildTable(){
         </div></td>`;
       tbody.appendChild(tr);
       const btns=[...tr.querySelectorAll('button')]; const saved=store[activeVisit][fi][ii]; if(saved>0) btns.forEach(b=>b.classList.toggle('active', Number(b.dataset.v)===saved));
-      btns.forEach(b=> b.addEventListener('click',()=>{btns.forEach(x=>x.classList.remove('active'));b.classList.add('active');store[activeVisit][fi][ii]=Number(b.dataset.v);calcAll();saveForm();}));
+      btns.forEach(b=> b.addEventListener('click',()=>{btns.forEach(x=>x.classList.remove('active'));b.classList.add('active');store[activeVisit][fi][ii]=Number(b.dataset.v);calcAll();}));
     });
   });
 }
@@ -701,7 +691,7 @@ function buildTools(){
   });
   [...document.querySelectorAll('.pills')].forEach(set=>{
     const pills=set.querySelectorAll('.pill');
-    pills.forEach(p=>p.addEventListener('click',()=>{pills.forEach(x=>x.classList.remove('active'));p.classList.add('active');updateToolsSummary();calcAll();saveForm();}));
+    pills.forEach(p=>p.addEventListener('click',()=>{pills.forEach(x=>x.classList.remove('active'));p.classList.add('active');updateToolsSummary();calcAll();}));
   });
   updateToolsSummary();
 }
@@ -717,10 +707,10 @@ function updateToolsSummary(){
 }
 
 /* توصيات قصيرة حسب المستوى */
-const phrase = {
-  strong: (n)=> `إبداع ملحوظ في «${n}» يعكس أثرًا إيجابيًا.`,
-  mid   : (n)=> `خطوات جيدة في «${n}» تحتاج تعزيزًا واستمرارية.`,
-  weak  : (n)=> `ضرورة إعادة النظر وتطوير «${n}» بشكل عاجل.`
+const phrase={
+  strong:(n)=>`إبداع ملحوظ في «${n}» يعكس أثرًا إيجابيًا.`,
+  mid:(n)=>`خطوات جيدة في «${n}» تحتاج تعزيزًا واستمرارية.`,
+  weak:(n)=>`ضرورة إعادة النظر وتطوير «${n}» بشكل عاجل.`
 };
 function buildRecommendationsFor(visit){
   const ok=[], dev=[];
@@ -728,9 +718,9 @@ function buildRecommendationsFor(visit){
     const vals=store[visit][fi]; if(!vals) return;
     const filled=vals.filter(v=>v>0); if(!filled.length) return;
     const avg=filled.reduce((a,b)=>a+b,0)/filled.length;
-    if(avg>=2.5) ok.push( phrase.strong(f.name) );
-    else if(avg>=1.5) ok.push( phrase.mid(f.name) );
-    else dev.push( phrase.weak(f.name) );
+    if(avg>=2.5) ok.push(phrase.strong(f.name));
+    else if(avg>=1.5) ok.push(phrase.mid(f.name));
+    else dev.push(phrase.weak(f.name));
   });
   // أدوات
   const sets=[...document.querySelectorAll('.pills')];
@@ -749,123 +739,158 @@ function setGlobalMeter(p){document.getElementById('globalThumb').style.left=p+'
 function setVisitPercents(p1,p2,p3){document.getElementById('p1').textContent=p1+'%';document.getElementById('p2').textContent=p2+'%';document.getElementById('p3').textContent=p3+'%';}
 
 /* دوائر وتواريخ */
-['v1','v2','v3'].forEach((id,i)=>{const el=document.getElementById(id);el.addEventListener('click',()=>{activeVisit=i+1;toggleChipVisibility();buildTable();renderToolsForVisit();calcAll();saveForm();});});
-['v1h','v2h','v3h'].forEach((id,i)=>{document.getElementById(id).addEventListener('click',()=>{setChip(i+1,hijriDateStr(new Date())); saveForm();});});
+['v1','v2','v3'].forEach((id,i)=>{const el=document.getElementById(id);el.addEventListener('click',()=>{activeVisit=i+1;toggleChipVisibility();buildTable();renderToolsForVisit();calcAll();});});
+['v1h','v2h','v3h'].forEach((id,i)=>{document.getElementById(id).addEventListener('click',()=>{setChip(i+1,hijriDateStr(new Date())); saveSoft();});});
 function setChip(v,txt){document.getElementById('v'+v+'h').textContent=txt; document.getElementById('sh'+v).textContent=txt;}
-function toggleChipVisibility(){
-  [1,2,3].forEach(v=>{
-    const chip=document.getElementById('v'+v+'h');
-    chip.classList.toggle('hidden', v!==activeVisit);
-  });
-}
+function toggleChipVisibility(){[1,2,3].forEach(v=>document.getElementById('v'+v+'h').classList.toggle('hidden', v!==activeVisit));}
 function activeVisitHijri(){ const lbl=activeVisit===1?'الأولى':activeVisit===2?'الثانية':'الثالثة'; const d=document.getElementById('v'+activeVisit+'h').textContent||'—'; return {lbl,d}; }
 
 /* أدوات الزيارة UI<->State */
 function getToolsStateFromUI(){ return [...document.querySelectorAll('.pills')].map(set=>{const act=set.querySelector('.pill.active'); return act? Number(act.dataset.v):0;});}
 function setToolsStateToUI(arr){ const sets=[...document.querySelectorAll('.pills')]; sets.forEach((set,i)=>{const v=(arr&&typeof arr[i]!=='undefined')?arr[i]:0; set.querySelectorAll('.pill').forEach(p=>p.classList.remove('active')); (set.querySelector(`.pill[data-v="${v}"]`)||set.querySelector('.pill[data-v="0"]')).classList.add('active');}); updateToolsSummary();}
-function renderToolsForVisit(){ const snap=loadedRecord?.visits?.[activeVisit] || null; const st=(snap && snap.finalized && snap.tools) ? snap.tools : Array(toolsData.length).fill(0); setToolsStateToUI(st);}
+function renderToolsForVisit(){
+  const snap=loadedRecord?.visits?.[activeVisit]||null;
+  const st=(snap && snap.finalized && snap.tools)? snap.tools : Array(toolsData.length).fill(0);
+  setToolsStateToUI(st);
+}
 
-/* تحميل/حفظ مع IndexedDB */
-let loadedRecord=null; // آخر سجل تم تحميله من القاعدة
-
+/* تحميل/حفظ */
 async function loadRecordForCurrentTeacher(){
-  const id=normalizedTeacherId(); loadedRecord=null;
-  if(!id) return;
-  loadedRecord = await dbGetTeacher(id);
-  if(!loadedRecord) {
-    // تهيئة سجل جديد
-    loadedRecord = {
+  const id=normalizedTeacherId();
+  loadedRecord=null;
+  store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()};
+  [1,2,3].forEach(v=>{setChip(v,'—'); document.getElementById('done'+v).style.display='none';});
+  if(!id){ // لا اسم ولا هوية -> تصفير واجهة
+    buildTable(); buildTools(); renderToolsForVisit(); calcAll();
+    return;
+  }
+  loadedRecord=await dbGetTeacher(id);
+  if(!loadedRecord){
+    loadedRecord={
       teacherId:id,
-      name: (tName.value||'').trim(),
-      nationalId: (tId.value||'').replace(/\D+/g,''),
-      spec: tSpec.value||'',
-      degree: degree.value||'',
-      exp: exp.value||'',
-      school: document.getElementById('h-school').textContent||'',
-      visits: {1:{finalized:false,date:'—'},2:{finalized:false,date:'—'},3:{finalized:false,date:'—'}},
-      savedAt: new Date().toISOString()
+      name:(tName.value||'').trim(),
+      nationalId:(tId.value||'').replace(/\D+/g,''),
+      spec:tSpec.value||'',
+      degree:degree.value||'',
+      exp:exp.value||'',
+      school:document.getElementById('h-school').textContent||'',
+      visits:{1:{finalized:false,date:'—'},2:{finalized:false,date:'—'},3:{finalized:false,date:'—'}},
+      savedAt:new Date().toISOString()
     };
     await dbPutTeacher(loadedRecord);
   }
-
-  // ضخّ المخزن من اللقطات المحفوظة
-  store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()};
+  // افتح اللقطات
   [1,2,3].forEach(v=>{
     const snap=loadedRecord.visits?.[v];
-    document.getElementById('done'+v).style.display = (snap && snap.finalized)?'inline-block':'none';
-    setChip(v, (snap && snap.date) || '—');
-    if(snap && snap.finalized && snap.ratings){
-      store[v]=clone(snap.ratings);
+    if(snap){
+      setChip(v,snap.date||'—');
+      if(snap.finalized){
+        document.getElementById('done'+v).style.display='inline-block';
+        if(snap.ratings) store[v]=clone(snap.ratings);
+      }
     }
   });
-
-  // اختر آخر زيارة مُعتمدة، وإلا الأولى
-  const lastFinal = [3,2,1].find(v=>loadedRecord.visits?.[v]?.finalized);
-  activeVisit = lastFinal || 1;
+  // اختر آخر زيارة معتمدة، وإلا الأولى
+  const lastFinal=[3,2,1].find(v=>loadedRecord.visits?.[v]?.finalized);
+  activeVisit=lastFinal || 1;
+  // إعادة بناء الواجهة
+  buildTable(); buildTools(); renderToolsForVisit(); calcAll();
 }
 
-async function saveForm(){
-  const id=normalizedTeacherId(); if(!id) return;
-  // حدِّث بيانات المعلم + التواريخ
-  loadedRecord.teacherId = id;
-  loadedRecord.name      = (tName.value||'').trim();
-  loadedRecord.nationalId= (tId.value||'').replace(/\D+/g,'');
-  loadedRecord.spec      = tSpec.value||'';
-  loadedRecord.degree    = degree.value||'';
-  loadedRecord.exp       = exp.value||'';
-  loadedRecord.school    = document.getElementById('h-school').textContent||'';
+async function saveHard(){ // حفظ كامل (للزيارات المعتمدة فقط)
+  if(!loadedRecord) return;
+  loadedRecord.name=(tName.value||'').trim();
+  loadedRecord.nationalId=(tId.value||'').replace(/\D+/g,'');
+  loadedRecord.spec=tSpec.value||'';
+  loadedRecord.degree=degree.value||'';
+  loadedRecord.exp=exp.value||'';
+  loadedRecord.school=document.getElementById('h-school').textContent||'';
   [1,2,3].forEach(v=>{
     if(!loadedRecord.visits[v]) loadedRecord.visits[v]={finalized:false,date:'—'};
-    loadedRecord.visits[v].date = document.getElementById('v'+v+'h').textContent||'—';
-    // لا نكتب ratings إلا بعد الاعتماد، لتجنّب تضارب المسودّات
+    loadedRecord.visits[v].date=document.getElementById('v'+v+'h').textContent||'—';
     if(loadedRecord.visits[v].finalized){
-      loadedRecord.visits[v].ratings = clone(store[v]);
+      loadedRecord.visits[v].ratings=clone(store[v]);
     }
   });
-  loadedRecord.savedAt = new Date().toISOString();
+  loadedRecord.savedAt=new Date().toISOString();
+  await dbPutTeacher(loadedRecord);
+}
+async function saveSoft(){ // حفظ خفيف (يُستخدم للتاريخ والاسم)
+  if(!loadedRecord) return;
+  loadedRecord.name=(tName.value||'').trim();
+  loadedRecord.nationalId=(tId.value||'').replace(/\D+/g,'');
+  [1,2,3].forEach(v=>{
+    if(!loadedRecord.visits[v]) loadedRecord.visits[v]={finalized:false,date:'—'};
+    loadedRecord.visits[v].date=document.getElementById('v'+v+'h').textContent||'—';
+  });
   await dbPutTeacher(loadedRecord);
 }
 
-/* اعتماد الزيارة: نصنع لقطة Snapshot كاملة */
-document.getElementById('finishVisitBtn').addEventListener('click', async ()=>{
-  const chip=document.getElementById('v'+activeVisit+'h'); if(!chip.textContent || chip.textContent==='—'){ chip.textContent=hijriDateStr(new Date()); }
-  const id=normalizedTeacherId(); if(!id) return alert('أدخل بيانات المعلم (الاسم/الهوية) أولًا.');
-  // أدوات + توصيات للحفظ
-  const toolsState = getToolsStateFromUI();
-  const recSnap = loadedRecord.visits[activeVisit] || {};
-  recSnap.ratings   = clone(store[activeVisit]);
-  recSnap.tools     = toolsState.slice();
-  recSnap.date      = chip.textContent;
-  recSnap.finalized = true;
-  recSnap.savedAt   = new Date().toISOString();
+/* تحقق قبل الاعتماد */
+function validateCurrentVisit(){
+  const missing=[];
+  const nm=(tName.value||'').trim(); const nid=(tId.value||'').replace(/\D+/g,''); const sp=(tSpec.value||'').trim();
+  if(!nm) missing.push('اسم المعلم');
+  if(!(/^\d{10}$/.test(nid))) missing.push('رقم الهوية (10 أرقام)');
+  if(!sp) missing.push('التخصص/المادة');
 
-  loadedRecord.visits[activeVisit]=recSnap;
+  // كل العناصر مُقيمة
+  let totalItems=0, filledItems=0;
+  store[activeVisit].forEach(row=>{row.forEach(v=>{totalItems++; if(v>0) filledItems++;});});
+  if(filledItems<totalItems) missing.push('مستوى الأداء لكل العناصر');
+
+  // كل الأدوات مختارة
+  const toolSets=[...document.querySelectorAll('.pills')];
+  const unselectedTools=toolSets.filter(set=>!set.querySelector('.pill.active')).length;
+  if(unselectedTools>0) missing.push('حالة جميع الأدوات المساندة');
+
+  if(missing.length){
+    alert('الرجاء استكمال الحقول التالية قبل الاعتماد:\n- '+missing.join('\n- '));
+    return false;
+  }
+  return true;
+}
+
+/* اعتماد زيارة */
+document.getElementById('finishVisitBtn').addEventListener('click', async ()=>{
+  if(!validateCurrentVisit()) return;
+  const id=normalizedTeacherId(); if(!id) return alert('أدخل بيانات المعلم أولًا.');
+  if(!loadedRecord || loadedRecord.teacherId!==id){
+    await loadRecordForCurrentTeacher(); // تأكيد المزامنة مع الهوية الحالية
+  }
+  const chip=document.getElementById('v'+activeVisit+'h');
+  if(!chip.textContent || chip.textContent==='—'){ chip.textContent=hijriDateStr(new Date()); }
+
+  const toolsState=getToolsStateFromUI();
+  const snap=loadedRecord.visits[activeVisit]||{};
+  snap.ratings=clone(store[activeVisit]);
+  snap.tools=toolsState.slice();
+  snap.date=chip.textContent;
+  snap.finalized=true;
+  snap.savedAt=new Date().toISOString();
+  loadedRecord.visits[activeVisit]=snap;
   await dbPutTeacher(loadedRecord);
 
   document.getElementById('done'+activeVisit).style.display='inline-block';
-  toggleChipVisibility();
   calcAll();
-  alert('تم اعتماد الزيارة وحفظ جميع البيانات.');
+  alert('تم اعتماد الزيارة وحفظ جميع البيانات لهذا المعلم.');
 });
 
-/* حذف زيارة لهذا المعلم */
+/* حذف زيارة محددة */
 document.getElementById('btnDeleteVisit').addEventListener('click', async ()=>{
   const id=normalizedTeacherId(); if(!id) return alert('اختر معلمًا أولًا.');
-  if(!confirm('سيتم تصفير المؤشرات والخيارات والتاريخ لهذه الزيارة فقط. متابعة؟')) return;
-  const v=activeVisit;
-  loadedRecord.visits[v]={finalized:false,date:'—'};
-  store[v]=zeroMatrix();
+  if(!confirm('سيتم تصفير المؤشرات والاختيارات والتاريخ لهذه الزيارة فقط. متابعة؟')) return;
+  loadedRecord.visits[activeVisit]={finalized:false,date:'—'};
+  store[activeVisit]=zeroMatrix();
   await dbPutTeacher(loadedRecord);
-  setChip(v,'—'); setDonut(v,0);
-  document.getElementById('done'+v).style.display='none';
-  renderToolsForVisit(); calcAll(); toggleChipVisibility();
-  alert('تم حذف بيانات هذه الزيارة لهذا المعلم.');
+  setChip(activeVisit,'—'); setDonut(activeVisit,0); document.getElementById('done'+activeVisit).style.display='none';
+  renderToolsForVisit(); calcAll();
 });
 
-/* مسح الجميع (يشمل الأسماء) */
+/* مسح الجميع */
 document.getElementById('btnClearAll').addEventListener('click', async ()=>{
   if(!confirm('سيتم مسح كل شيء: المؤشرات والاختيارات والتوصيات والتفعيل وقوائم الأسماء. متابعة؟')) return;
-  await dbDeleteAll();
+  await dbClearAll();
   localStorage.removeItem(LS_TEACHERS);
   localStorage.removeItem(LS_LAST);
 
@@ -874,25 +899,24 @@ document.getElementById('btnClearAll').addEventListener('click', async ()=>{
   document.getElementById('strengthBox').innerHTML='—'; document.getElementById('devBox').innerHTML='—';
   document.getElementById('approvedList').innerHTML='—'; document.getElementById('approvedPanel').style.display='none';
   tName.value=''; tId.value=''; tSpec.value=''; degree.value=''; exp.value='';
-  updateSignNames();
-  toggleChipVisibility();
-  alert('تم مسح جميع البيانات بما فيها قائمة الأسماء.');
+  updateSignNames(); calcAll();
 });
 
-/* عرض المعتمدين */
-function getApprovedTeachersFromRecordset(list){ return list.filter(x=>x && x.visits && x.visits[1]?.finalized && x.visits[2]?.finalized && x.visits[3]?.finalized).map(x=>x.name||x.teacherId); }
+/* قائمة المعتمدين */
 async function refreshApprovedPanel(){
   const db=await openDB();
   const arr=[];
   await new Promise((res)=>{
     const tx=db.transaction(STORE,'readonly'); const os=tx.objectStore(STORE);
     const req=os.openCursor();
-    req.onsuccess=()=>{ const cur=req.result; if(cur){ arr.push(cur.value); cur.continue(); } else res(); };
-    req.onerror =()=>res();
+    req.onsuccess=()=>{ const c=req.result; if(c){arr.push(c.value); c.continue();} else res(); };
+    req.onerror=()=>res();
   });
-  const names=getApprovedTeachersFromRecordset(arr).sort((a,b)=>a.localeCompare(b,'ar'));
+  const names=arr.filter(x=>x.visits?.[1]?.finalized && x.visits?.[2]?.finalized && x.visits?.[3]?.finalized)
+                 .map(x=>x.name||x.teacherId)
+                 .sort((a,b)=>a.localeCompare(b,'ar'));
   const box=document.getElementById('approvedList');
-  if(!names.length){ box.innerHTML='—'; return; }
+  if(!names.length){box.innerHTML='—'; return;}
   box.innerHTML=''; names.forEach(n=>{const s=document.createElement('span'); s.className='name-chip'; s.textContent=n; box.appendChild(s);});
 }
 document.getElementById('btnApproved').addEventListener('click',async ()=>{
@@ -901,15 +925,29 @@ document.getElementById('btnApproved').addEventListener('click',async ()=>{
   else panel.style.display='none';
 });
 
-/* أسماء التوقيع */
-function updateSignNames(){const n=(tName.value||'—');['sn1','sn2','sn3'].forEach(id=>document.getElementById(id).textContent=n); saveForm();}
-document.getElementById('tName').addEventListener('input',updateSignNames);
+/* أسماء التوقيع + هوية المعلم */
+function updateSignNames(){const n=(tName.value||'—');['sn1','sn2','sn3'].forEach(id=>document.getElementById(id).textContent=n);}
+tName.addEventListener('input',updateSignNames);
+
+/* تبديل المعلم عند تغيّر الاسم/الهوية (تحميل ذكي) */
+let idDebounce=null;
+function onIdentityChange(){
+  clearTimeout(idDebounce);
+  idDebounce=setTimeout(async ()=>{
+    await loadRecordForCurrentTeacher();
+    localStorage.setItem(LS_LAST, normalizedTeacherId());
+  },200);
+}
+tId.addEventListener('change',onIdentityChange);
+tId.addEventListener('blur',onIdentityChange);
+tName.addEventListener('change',onIdentityChange);
+tName.addEventListener('blur',onIdentityChange);
 
 /* تعديل اسم المدير */
 function editPrincipal(id){
   const el=document.getElementById(id);
   const v=prompt('اسم مدير المدرسة:', el.textContent.trim() || 'فهد حامد علي الزهراني');
-  if(v){ el.textContent=v; }
+  if(v){ el.textContent=v; saveHard(); }
 }
 document.getElementById('penPrin1').addEventListener('click',()=>editPrincipal('pn1'));
 document.getElementById('penPrin2').addEventListener('click',()=>editPrincipal('pn2'));
@@ -917,14 +955,13 @@ document.getElementById('penPrin3').addEventListener('click',()=>editPrincipal('
 
 /* حسابات + توصيات + تحديث الواجهة */
 function calcAll(){
-  // تحديث المؤشرات لكل زيارة محفوظة
+  // الدوائر الثلاث وفق الحالة الحالية للمخزن (المعتمَد محفوظ، وغير المعتمد صفر)
   [1,2,3].forEach(v=> setDonut(v, visitPct(v)));
   const p1=visitPct(1), p2=visitPct(2), p3=visitPct(3);
   const gpct=Math.round((p1+p2+p3)/3); setGlobalMeter(gpct); setVisitPercents(p1,p2,p3);
 
-  const isActiveFinal = !!(loadedRecord && loadedRecord.visits && loadedRecord.visits[activeVisit] && loadedRecord.visits[activeVisit].finalized);
-  const vPct=isActiveFinal? visitPct(activeVisit) : 0;
-  setVisitMeter(vPct);
+  const isActiveFinal=!!(loadedRecord && loadedRecord.visits && loadedRecord.visits[activeVisit] && loadedRecord.visits[activeVisit].finalized);
+  setVisitMeter(isActiveFinal?visitPct(activeVisit):0);
 
   if(isActiveFinal){
     const {ok,dev}=buildRecommendationsFor(activeVisit);
@@ -936,7 +973,7 @@ function calcAll(){
   }
 }
 
-/* طباعة / حفظ PDF (إخفاء الأيقونات أثناء الالتقاط) */
+/* طباعة / حفظ PDF */
 function updatePrintHijri(){ document.getElementById('printHijri').textContent = hijriNow(); }
 document.getElementById('printBtn').addEventListener('click', async ()=>{
   document.body.classList.add('snapshot'); updatePrintHijri();
@@ -972,44 +1009,35 @@ window.addEventListener('scroll',()=>{const on=window.scrollY>200; toTop.style.d
 toTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:"smooth"}));
 toBottom.addEventListener('click',()=>window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}));
 
-/* تحميل معلم من اللوحة */
+/* ملء معلم من اللوحة */
 async function fillTeacher(t){
   tName.value=t.name||''; tId.value=(t.id||'').replace(/\D+/g,'').slice(0,10);
   tSpec.value=t.spec||''; degree.value=t.degree||''; exp.value=t.exp||'';
   updateSignNames();
   await loadRecordForCurrentTeacher();
-  buildTable(); buildTools(); renderToolsForVisit(); calcAll();
   localStorage.setItem(LS_LAST, normalizedTeacherId());
 }
-
-/* أسماء التوقيع */
-function updateSignNames(){const n=(tName.value||'—');['sn1','sn2','sn3'].forEach(id=>document.getElementById(id).textContent=n); saveForm();}
 
 /* تهيئة */
 (async function init(){
   document.getElementById('hijriChip').textContent='التاريخ الهجري: '+hijriNow();
-  buildTable(); buildTools();
-
   // استعادة قائمة الأسماء
   try{ const saved=JSON.parse(localStorage.getItem(LS_TEACHERS)||'[]'); if(Array.isArray(saved)) teacherList=saved; }catch{}
 
-  // لو عندك آخر معلّم
+  // آخر معلم
   const last=localStorage.getItem(LS_LAST);
   if(last){
-    // حاول ملء الحقول حتى لو ما عندك teacherList
-    if(!/^\d{10}$/.test((tId.value||'').replace(/\D+/g,'')) && last.startsWith('name:')){
-      tName.value = last.replace(/^name:/,'');
-    }else{
-      tId.value = last;
-    }
+    if(/^\d{10}$/.test(last)){ tId.value=last; }
+    else if(last.startsWith('name:')){ tName.value=last.replace(/^name:/,''); }
   }
-
-  await loadRecordForCurrentTeacher();
   updateSignNames();
-  buildTable(); buildTools(); renderToolsForVisit(); calcAll();
 
-  // حفظ دوري
-  setInterval(()=>{ saveForm(); }, 60000);
+  // بناء الواجهة وتحميل سجل المعلم (إن وجد)
+  buildTable(); buildTools();
+  await loadRecordForCurrentTeacher();
+
+  // حفظ دوري ناعم
+  setInterval(()=>{ saveSoft(); }, 60000);
 })();
 </script>
 </body>
