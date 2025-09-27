@@ -132,7 +132,7 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
 .tool-desc{
   display:block;
   opacity:.9;
-  font-size:11px;        /* أصغر من قبل */
+  font-size:11px;
   line-height:1.6;
   margin-top:2px;
   text-wrap:balance;
@@ -245,10 +245,16 @@ body.snapshot .no-print{ display:none !important }
       <input class="fld col-3" id="exp" placeholder="سنوات الخبرة">
       <input class="fld col-3" id="class" placeholder="الفصل">
 
-      <!-- العدسة فقط + استيراد داخل اللوحة -->
+      <!-- العدسة + قوالب (جديد) -->
       <div class="col-3" style="display:flex;gap:6px;align-items:center;justify-content:center">
         <button class="btn-ic tiny no-print" id="btnShowList" title="كشف الأسماء">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+        <button class="btn-ic tiny no-print" id="btnExportTemplate" title="تصدير قالب Excel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="14" height="16" rx="2"/><path d="M7 8h6M7 12h6M7 16h6"/>
+            <path d="M17 12l4 4m0-4-4 4"/>
+          </svg>قوالب
         </button>
       </div>
     </div>
@@ -380,7 +386,7 @@ body.snapshot .no-print{ display:none !important }
 
   <div id="printMark" class="printMark">مبادرة دعم اليعقوبي الثانوي — تاريخ الطباعة: <span id="printHijri">—</span></div>
 
-  <!-- فوتر الحقوق (أسفل الصفحة) — مخفي في الطباعة/الحفظ -->
+  <!-- فوتر الحقوق -->
   <div class="footer-rights no-print">
     مبادرة مدرسة اليعقوبي الثانوية بالخبر — تنفيذ وتصميم: فهد حامد الزهراني
   </div>
@@ -546,7 +552,7 @@ ${dv}`;
   window.open('https://api.whatsapp.com/send?phone='+waNumber+'&text='+encodeURIComponent(msg),'_blank');
 });
 
-/* كشف الأسماء + استيراد */
+/* كشف الأسماء + قوالب + استيراد */
 let teacherList=[];
 const tName=document.getElementById('tName'), tId=document.getElementById('tId'), tSpec=document.getElementById('tSpec');
 const degree=document.getElementById('degree'), exp=document.getElementById('exp');
@@ -557,6 +563,18 @@ document.getElementById('tpClose').addEventListener('click',()=>tp.style.display
 document.getElementById('btnImportInPanel').addEventListener('click',()=>document.getElementById('excelInput').click());
 document.getElementById('excelInput').addEventListener('change', handleExcelImport);
 tpQuery.addEventListener('input',()=>renderTeachers(tpQuery.value));
+
+/* زر القوالب (تصدير Excel) */
+document.getElementById('btnExportTemplate').addEventListener('click', exportTemplateExcel);
+function exportTemplateExcel(){
+  const headers = [["اسم المعلم","رقم الهوية","التخصص","المؤهل","سنوات الخبرة"]];
+  const ws = XLSX.utils.aoa_to_sheet(headers);
+  // عرض الأعمدة مناسب
+  ws['!cols'] = [{wch:24},{wch:14},{wch:18},{wch:14},{wch:14}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "قائمة المعلمين");
+  XLSX.writeFile(wb, "قالب_كشف_المعلمين.xlsx");
+}
 
 function handleExcelImport(e){
   const file=e.target.files[0]; if(!file) return;
@@ -752,12 +770,9 @@ function visitPctLevels(v){
   return rated.length?Math.round((s/(rated.length*2))*100):0;
 }
 function getToolsArrayForVisit(v){
-  // عند استعراض زيارة محفوظة: نقرأ من السجل
   const snap=loadedRecord?.visits?.[v];
   if(snap?.finalized && Array.isArray(snap.tools)) return snap.tools.slice();
-  // للزيارة الحالية غير المعتمدة: من الواجهة
   if(v===activeVisit){ return [...document.querySelectorAll('.pills')].map(set=>{const act=set.querySelector('.pill.active'); return act?Number(act.dataset.v):0;}); }
-  // غير متاح
   return Array(toolsData.length).fill(0);
 }
 function toolPctFromArray(arr){
@@ -832,24 +847,6 @@ async function loadRecordForCurrentTeacher(){
   buildTable(); buildTools(); renderToolsForVisit(); calcAll();
 }
 
-async function saveHard(){
-  if(!loadedRecord) return;
-  loadedRecord.name=(tName.value||'').trim();
-  loadedRecord.nationalId=(tId.value||'').replace(/\D+/g,'');
-  loadedRecord.spec=tSpec.value||'';
-  loadedRecord.degree=degree.value||'';
-  loadedRecord.exp=exp.value||'';
-  loadedRecord.school=document.getElementById('h-school').textContent||'';
-  [1,2,3].forEach(v=>{
-    if(!loadedRecord.visits[v]) loadedRecord.visits[v]={finalized:false,date:'—'};
-    loadedRecord.visits[v].date=document.getElementById('v'+v+'h').textContent||'—';
-    if(loadedRecord.visits[v].finalized){
-      loadedRecord.visits[v].ratings=clone(store[v]);
-    }
-  });
-  loadedRecord.savedAt=new Date().toISOString();
-  await dbPutTeacher(loadedRecord);
-}
 async function saveSoft(){
   if(!loadedRecord) return;
   loadedRecord.name=(tName.value||'').trim();
@@ -980,7 +977,7 @@ tName.addEventListener('blur',onIdentityChange);
 function editPrincipal(id){
   const el=document.getElementById(id);
   const v=prompt('اسم مدير المدرسة:', el.textContent.trim() || 'فهد حامد علي الزهراني');
-  if(v){ el.textContent=v; saveHard(); }
+  if(v){ el.textContent=v; saveSoft(); }
 }
 document.getElementById('penPrin1').addEventListener('click',()=>editPrincipal('pn1'));
 document.getElementById('penPrin2').addEventListener('click',()=>editPrincipal('pn2'));
@@ -988,7 +985,6 @@ document.getElementById('penPrin3').addEventListener('click',()=>editPrincipal('
 
 /* حسابات + توصيات + تحديث الواجهة */
 function calcAll(){
-  // الدوائر الثلاث وفق النسبة المدمجة (الأداء + الأدوات)
   const p1=visitPctAdjusted(1), p2=visitPctAdjusted(2), p3=visitPctAdjusted(3);
   [1,2,3].forEach(v=> setDonut(v, v===1?p1:(v===2?p2:p3)));
   const gpct=Math.round((p1+p2+p3)/3); setGlobalMeter(gpct); setVisitPercents(p1,p2,p3);
