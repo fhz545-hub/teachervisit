@@ -128,6 +128,17 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
 .pill[data-v="1"].active{background:#fff1dc;color:#a8620a;border-color:#f2d3a2}
 .pill[data-v="0"].active{background:#ffe3e3;color:#b42318;border-color:#f2bcbc}
 
+/* تصغير تعريف الأدوات فقط */
+.tool-desc{
+  display:block;
+  opacity:.9;
+  font-size:11px;        /* أصغر من قبل */
+  line-height:1.6;
+  margin-top:2px;
+  text-wrap:balance;
+  text-align:right;
+}
+
 /* التوصيات */
 .rec-wrap{padding:10px}
 .recTbl{width:100%;border-collapse:collapse}
@@ -162,7 +173,7 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
 /* شارة الطباعة */
 .printMark{display:none;text-align:center;margin:6px 0 2px;color:#184b44;font-size:10px}
 
-/* أزرار الصعود/النزول (تحسين الحركة والملمس) */
+/* أزرار الصعود/النزول */
 #toTop,#toBottom{
   position:fixed;bottom:20px;padding:12px;border:none;border-radius:50%;
   background:#0f7a66;color:#fff;font-size:18px;cursor:pointer;display:none;z-index:999;
@@ -174,7 +185,7 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
 #toBottom{right:20px}
 #toTop:hover,#toBottom:hover{transform:translateY(-2px) scale(1.04); box-shadow:0 12px 28px rgba(0,0,0,.22)}
 
-/* فوتر الحقوق (أسفل الصفحة) */
+/* فوتر الحقوق */
 .footer-rights{
   margin:8px 0 14px;
   text-align:center;
@@ -246,7 +257,7 @@ body.snapshot .no-print{ display:none !important }
   <!-- المؤشرات الشاملة -->
   <div class="hmeterTop">
     <div class="tooltip">المؤشر الشامل للأداء <b id="globalPctInline" class="globalInline">0%</b>
-      <span class="tiptext">مقياس تجميعي يُلخص نتائج الزيارات الثلاث.</span>
+      <span class="tiptext">مقياس تجميعي يُلخص نتائج الزيارات الثلاث (يشمل 15% لتفعيل الأدوات).</span>
     </div>
     <div class="visitPercents">
       <span class="badge">الأولى: <b id="p1">0%</b></span>
@@ -518,7 +529,7 @@ document.getElementById('waEdit').addEventListener('click',()=>{
 });
 document.getElementById('waBtn').addEventListener('click',()=>{
   const name=(tName.value||'—').trim(), spec=(tSpec.value||'—').trim(), id=(tId.value||'—').trim();
-  const p1=visitPct(1), p2=visitPct(2), p3=visitPct(3);
+  const p1=visitPctAdjusted(1), p2=visitPctAdjusted(2), p3=visitPctAdjusted(3);
   const school=document.getElementById('h-school').textContent.trim();
   const {lbl,d}=activeVisitHijri();
   const ok=(document.getElementById('strengthBox').innerText||'—').trim();
@@ -680,7 +691,10 @@ function buildTools(){
   toolsData.forEach((t,i)=>{
     const tr=document.createElement('tr');
     tr.innerHTML=`<td class="seq">${i+1}</td>
-      <td><span class="tool-name">${t.title}</span><span class="tool-desc" style="display:block;opacity:.9">${t.desc}</span></td>
+      <td style="text-align:right">
+        <span class="tool-name" style="font-weight:800">${t.title}</span>
+        <span class="tool-desc">${t.desc}</span>
+      </td>
       <td style="text-align:center"><input type="checkbox" title="شاهد مُتاح؟"></td>
       <td><div class="pills">
           <div class="pill" data-v="2">مُفعل</div>
@@ -723,16 +737,40 @@ function buildRecommendationsFor(visit){
     else dev.push(phrase.weak(f.name));
   });
   // أدوات
-  const sets=[...document.querySelectorAll('.pills')];
-  const valOf=set=> Number((set.querySelector('.pill.active')||{dataset:{v:0}}).dataset.v);
-  const ranked=sets.map((s,i)=>({i,v:valOf(s)}));
-  ranked.filter(x=>x.v===2).slice(0,2).forEach(x=>ok.push(`تفعيل مُجود لأداة: «${toolsData[x.i].title}».`));
-  ranked.filter(x=>x.v===0).slice(0,2).forEach(x=>dev.push(`تفعيل أداة «${toolsData[x.i].title}» وربطها بالأهداف بمهام قصيرة.`));
+  const toolVals=getToolsArrayForVisit(visit);
+  toolVals.forEach((v,i)=>{
+    if(v===2) ok.push(`تفعيل مُجود لأداة: «${toolsData[i].title}».`);
+    if(v===0) dev.push(`تفعيل أداة «${toolsData[i].title}» وربطها بالأهداف بمهام قصيرة.`);
+  });
   return {ok,dev};
 }
 
-/* مؤشرات */
-function visitPct(v){ const flat=store[v].flat(), rated=flat.filter(x=>x>0); const s=rated.reduce((a,b)=>a+(b-1),0); return rated.length?Math.round((s/(rated.length*2))*100):0;}
+/* === المؤشرات: دمج الأداء (85%) + الأدوات (15%) === */
+function visitPctLevels(v){
+  const flat=store[v].flat(), rated=flat.filter(x=>x>0);
+  const s=rated.reduce((a,b)=>a+(b-1),0);
+  return rated.length?Math.round((s/(rated.length*2))*100):0;
+}
+function getToolsArrayForVisit(v){
+  // عند استعراض زيارة محفوظة: نقرأ من السجل
+  const snap=loadedRecord?.visits?.[v];
+  if(snap?.finalized && Array.isArray(snap.tools)) return snap.tools.slice();
+  // للزيارة الحالية غير المعتمدة: من الواجهة
+  if(v===activeVisit){ return [...document.querySelectorAll('.pills')].map(set=>{const act=set.querySelector('.pill.active'); return act?Number(act.dataset.v):0;}); }
+  // غير متاح
+  return Array(toolsData.length).fill(0);
+}
+function toolPctFromArray(arr){
+  const total=arr.length||1;
+  const score=arr.reduce((acc,v)=>acc+(v===2?1:(v===1?0.5:0)),0)/total;
+  return Math.round(score*100);
+}
+function toolPctForVisit(v){ return toolPctFromArray(getToolsArrayForVisit(v)); }
+function visitPctAdjusted(v){
+  const L=visitPctLevels(v);
+  const T=toolPctForVisit(v);
+  return Math.round(L*0.85 + T*0.15);
+}
 function setVisitMeter(p){document.getElementById('kpiPct').textContent=p+'%'; document.getElementById('hThumb').style.left=p+'%';}
 function setDonut(v,p){const C=314; const ring=document.querySelector('#v'+v+' .ring'); const txt=document.getElementById('v'+v+'t'); ring.setAttribute('stroke', p>=80?'#16a34a':(p>=50?'#f59e0b':'#ef4444')); ring.setAttribute('stroke-dasharray',`${(p/100)*C} ${C}`); txt.textContent=p+'%';}
 function setGlobalMeter(p){document.getElementById('globalThumb').style.left=p+'%'; const gi=document.getElementById('globalPctInline'); gi.textContent=p+'%'; gi.className='globalInline '+(p>=80?'good':(p>=50?'mid':'bad')); }
@@ -760,7 +798,7 @@ async function loadRecordForCurrentTeacher(){
   loadedRecord=null;
   store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()};
   [1,2,3].forEach(v=>{setChip(v,'—'); document.getElementById('done'+v).style.display='none';});
-  if(!id){ // لا اسم ولا هوية -> تصفير واجهة
+  if(!id){
     buildTable(); buildTools(); renderToolsForVisit(); calcAll();
     return;
   }
@@ -779,7 +817,6 @@ async function loadRecordForCurrentTeacher(){
     };
     await dbPutTeacher(loadedRecord);
   }
-  // افتح اللقطات
   [1,2,3].forEach(v=>{
     const snap=loadedRecord.visits?.[v];
     if(snap){
@@ -790,14 +827,12 @@ async function loadRecordForCurrentTeacher(){
       }
     }
   });
-  // اختر آخر زيارة معتمدة، وإلا الأولى
   const lastFinal=[3,2,1].find(v=>loadedRecord.visits?.[v]?.finalized);
   activeVisit=lastFinal || 1;
-  // إعادة بناء الواجهة
   buildTable(); buildTools(); renderToolsForVisit(); calcAll();
 }
 
-async function saveHard(){ // حفظ كامل (للزيارات المعتمدة فقط)
+async function saveHard(){
   if(!loadedRecord) return;
   loadedRecord.name=(tName.value||'').trim();
   loadedRecord.nationalId=(tId.value||'').replace(/\D+/g,'');
@@ -815,7 +850,7 @@ async function saveHard(){ // حفظ كامل (للزيارات المعتمدة
   loadedRecord.savedAt=new Date().toISOString();
   await dbPutTeacher(loadedRecord);
 }
-async function saveSoft(){ // حفظ خفيف (يُستخدم للتاريخ والاسم)
+async function saveSoft(){
   if(!loadedRecord) return;
   loadedRecord.name=(tName.value||'').trim();
   loadedRecord.nationalId=(tId.value||'').replace(/\D+/g,'');
@@ -834,12 +869,10 @@ function validateCurrentVisit(){
   if(!(/^\d{10}$/.test(nid))) missing.push('رقم الهوية (10 أرقام)');
   if(!sp) missing.push('التخصص/المادة');
 
-  // كل العناصر مُقيمة
   let totalItems=0, filledItems=0;
   store[activeVisit].forEach(row=>{row.forEach(v=>{totalItems++; if(v>0) filledItems++;});});
   if(filledItems<totalItems) missing.push('مستوى الأداء لكل العناصر');
 
-  // كل الأدوات مختارة
   const toolSets=[...document.querySelectorAll('.pills')];
   const unselectedTools=toolSets.filter(set=>!set.querySelector('.pill.active')).length;
   if(unselectedTools>0) missing.push('حالة جميع الأدوات المساندة');
@@ -856,7 +889,7 @@ document.getElementById('finishVisitBtn').addEventListener('click', async ()=>{
   if(!validateCurrentVisit()) return;
   const id=normalizedTeacherId(); if(!id) return alert('أدخل بيانات المعلم أولًا.');
   if(!loadedRecord || loadedRecord.teacherId!==id){
-    await loadRecordForCurrentTeacher(); // تأكيد المزامنة مع الهوية الحالية
+    await loadRecordForCurrentTeacher();
   }
   const chip=document.getElementById('v'+activeVisit+'h');
   if(!chip.textContent || chip.textContent==='—'){ chip.textContent=hijriDateStr(new Date()); }
@@ -955,16 +988,16 @@ document.getElementById('penPrin3').addEventListener('click',()=>editPrincipal('
 
 /* حسابات + توصيات + تحديث الواجهة */
 function calcAll(){
-  // الدوائر الثلاث وفق الحالة الحالية للمخزن (المعتمَد محفوظ، وغير المعتمد صفر)
-  [1,2,3].forEach(v=> setDonut(v, visitPct(v)));
-  const p1=visitPct(1), p2=visitPct(2), p3=visitPct(3);
+  // الدوائر الثلاث وفق النسبة المدمجة (الأداء + الأدوات)
+  const p1=visitPctAdjusted(1), p2=visitPctAdjusted(2), p3=visitPctAdjusted(3);
+  [1,2,3].forEach(v=> setDonut(v, v===1?p1:(v===2?p2:p3)));
   const gpct=Math.round((p1+p2+p3)/3); setGlobalMeter(gpct); setVisitPercents(p1,p2,p3);
 
   const isActiveFinal=!!(loadedRecord && loadedRecord.visits && loadedRecord.visits[activeVisit] && loadedRecord.visits[activeVisit].finalized);
-  setVisitMeter(isActiveFinal?visitPct(activeVisit):0);
+  setVisitMeter(isActiveFinal?visitPctAdjusted(activeVisit):0);
 
+  const {ok,dev}=buildRecommendationsFor(activeVisit);
   if(isActiveFinal){
-    const {ok,dev}=buildRecommendationsFor(activeVisit);
     document.getElementById('strengthBox').innerHTML=ok.length?ok.join('<br>'):'—';
     document.getElementById('devBox').innerHTML=dev.length?dev.join('<br>'):'—';
   }else{
@@ -1021,10 +1054,8 @@ async function fillTeacher(t){
 /* تهيئة */
 (async function init(){
   document.getElementById('hijriChip').textContent='التاريخ الهجري: '+hijriNow();
-  // استعادة قائمة الأسماء
   try{ const saved=JSON.parse(localStorage.getItem(LS_TEACHERS)||'[]'); if(Array.isArray(saved)) teacherList=saved; }catch{}
 
-  // آخر معلم
   const last=localStorage.getItem(LS_LAST);
   if(last){
     if(/^\d{10}$/.test(last)){ tId.value=last; }
@@ -1032,11 +1063,9 @@ async function fillTeacher(t){
   }
   updateSignNames();
 
-  // بناء الواجهة وتحميل سجل المعلم (إن وجد)
   buildTable(); buildTools();
   await loadRecordForCurrentTeacher();
 
-  // حفظ دوري ناعم
   setInterval(()=>{ saveSoft(); }, 60000);
 })();
 </script>
