@@ -118,28 +118,24 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
 .gradbar{height:12px;border:1px solid var(--border);border-radius:999px;overflow:hidden;background:#eef3f2}
 .bar-nums{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:#0a5b50;padding:0 8px}
 
-/* تعديل: تنسيق عمود التفعيل + تصغير الشواهد */
-.pills{
-  /* توسيع مساحة الأزرار وتوسيطها */
-  display:grid;
-  grid-template-columns:repeat(3, minmax(96px,1fr)); /* تعديل */
-  gap:8px;
-  align-items:center;
-  justify-items:center; /* تعديل */
-}
-.pill{
-  display:inline-flex;align-items:center;justify-content:center;
-  padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;
-  cursor:pointer;font-weight:700;font-size:12px;width:100%;text-align:center
-}
+/* *** تنسيق عمود التفعيل: تناصف تام داخل العمود *** */
+.td-activate{display:flex;align-items:center;justify-content:center}
+.pills{display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;align-items:center;justify-items:center; width:100%; max-width:360px; margin-inline:auto}
+.pill{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;font-weight:700;font-size:12px;min-width:86px}
 .pill[data-v="2"].active{background:#e9f7ee;color:#0f6a3b;border-color:#b9e4c8}
 .pill[data-v="1"].active{background:#fff1dc;color:#a8620a;border-color:#f2d3a2}
 .pill[data-v="0"].active{background:#ffe3e3;color:#b42318;border-color:#f2bcbc}
 
 .tool-desc{display:block;opacity:.9;font-size:11px;line-height:1.6;margin-top:2px;text-align:right}
-.tool-reason{width:100%;min-height:60px;border:1px dashed var(--line);border-radius:10px;background:#fff;padding:6px 8px;font:inherit;resize:vertical;white-space:pre-wrap}
+
+/* عمود الشواهد (تصغير قليل) */
+.td-proof{width:100%; text-align:center}
+.td-proof input{transform:scale(.95)}
+
+/* عمود أسباب عدم التفعيل: أصغر قليلًا وخط أصغر */
+.td-reason .tool-reason{width:100%;min-height:52px;border:1px dashed var(--line);border-radius:10px;background:#fff;padding:6px 8px;font:inherit;font-size:11.5px;resize:vertical;white-space:pre-wrap}
 .tool-reason:disabled{opacity:.55;background:#f7faf9}
-.textarea-print{white-space:pre-wrap;border:1px dashed var(--line);border-radius:10px;background:#fff;padding:6px;font-size:inherit;min-height:48px;text-align:right}
+.textarea-print{white-space:pre-wrap;border:1px dashed var(--line);border-radius:10px;background:#fff;padding:6px;font-size:11.5px;min-height:44px;text-align:right}
 
 /* التوصيات */
 .rec-wrap{padding:10px}
@@ -159,18 +155,18 @@ h1{margin:10px 0 8px;color:#0f7a66;font-family:"Cairo","Tajawal";font-size:clamp
 #supportMeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .chip-mini{display:inline-flex;align-items:center;gap:6px;border:1px dashed var(--soft-green-b);background:#f6fff9;color:#0f6a3b;border-radius:999px;padding:3px 8px;font-size:11.5px}
 
-/* إشعار أصفر (Toast) */
+/* إشعار أصفر (Toast) — أقصر عرضًا قليلاً ليحتوي الجملة */
 .toast{
   position:fixed; right:12px; bottom:12px; z-index:1400;
-  width:min(620px,94vw);   /* تعديل: تطويل بسيط ليظهر النص كامل */
+  width:min(520px,92vw);
   min-height:36px;
-  background:rgba(255,244,178,.94); border:1px solid #f5d565; color:#7a6400;
-  border-radius:16px; padding:6px 12px; box-shadow:0 10px 28px rgba(0,0,0,.12);
+  background:rgba(255,244,178,.96); border:1px solid #f5d565; color:#7a6400;
+  border-radius:16px; padding:6px 10px; box-shadow:0 10px 28px rgba(0,0,0,.12);
   display:flex; align-items:center; gap:8px; direction:rtl;
   -webkit-backdrop-filter: blur(1px); backdrop-filter: blur(1px);
 }
 .toast .dot{width:6px;height:6px;border-radius:50%;background:#a07800;opacity:.9}
-.toast .line{flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:700;white-space:nowrap}
+.toast .line{flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;font-size:11.5px;font-weight:700;white-space:nowrap}
 .toast .close{border:none;background:#fff;color:#a07800;border:1px solid #f0d98b;border-radius:999px;padding:0 8px;cursor:pointer;font-size:12px;line-height:20px}
 
 /* بقية التنسيقات */
@@ -216,18 +212,19 @@ body.snapshot .no-print{ display:none !important }
 @page{ size:A4 portrait; margin:5mm }
 @media print{
   :root{--base:12px}
-  *{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  *{-webkit-print-color-adjust:exact; print-color-adjust:exact; color:#000 !important; text-shadow:none !important; filter:none !important}
   h1{font-size:16px}
   .donut{width:92px;height:auto}
-  .tbl th,.tbl td{padding:5px;font-size:11.5px}
+  .tbl th,.tbl td{padding:5px;font-size:11.5px;border-color:#333 !important}
+  .tbl thead th{background:#111 !important;color:#fff !important}
   .item-brief{font-size:10.5px}
   .no-print, .bottom-actions, #approvedPanel, #teachersPanel, .footer-rights, .toast { display:none !important }
   .printMark{display:block !important}
   #page{width:210mm}
 }
 
-/* نسخة الالتقاط لتحسين وضوح الطباعة وPDF */
-.for-print, .for-print *{background:#fff !important; color:#111 !important; box-shadow:none !important}
+/* نسخة الالتقاط للطباعة وPDF */
+.for-print, .for-print *{background:#fff !important; color:#111 !important; box-shadow:none !important; filter:none !important}
 .for-print .tbl th{background:#000 !important; color:#fff !important; border-color:#333 !important}
 .for-print .tbl td{border-color:#444 !important}
 .for-print .badge{background:#fff !important; border-color:#444 !important; color:#111 !important}
@@ -352,10 +349,10 @@ body.snapshot .no-print{ display:none !important }
       <table class="tbl" id="toolsTbl">
         <colgroup>
           <col style="width:44px">
-          <col style="width:280px">
-          <col style="width:100px"><!-- تعديل: تصغير الشواهد -->
-          <col style="width:220px"><!-- تعديل: تكبير التفعيل -->
-          <col style="width:220px">
+          <col style="width:260px">
+          <col style="width:110px">   <!-- الشواهد أصغر -->
+          <col style="width:260px">   <!-- التفعيل أكبر ومتناسف -->
+          <col style="width:170px">   <!-- الأسباب أصغر -->
         </colgroup>
         <thead>
           <tr>
@@ -437,7 +434,7 @@ body.snapshot .no-print{ display:none !important }
 
     <button class="btn-ic" id="btnApproved" title="المعتمدون"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-8 0v2"/><circle cx="12" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/></svg>المعتمدون</button>
     <button class="btn-ic" id="btnDeleteVisit" title="حذف هذه الزيارة لهذا المعلم"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4h8v2"/></svg>حذف زيارة (لهذا المعلم)</button>
-    <button class="btn-ic" id="btnClearAll" title="مسح الجميع"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 3 1 2 13h8l2-13 3-1"/><path d="M5 6h14"/><path d="M10 11v6M14 11v6"/></svg>مسح الجميع</button>
+    <button class="btn-ic" id="btnClearAll" title="مسح الجميع"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 3 1 2 13h8ل2-13 3-1"/><path d="M5 6h14"/><path d="M10 11v6M14 11v6"/></svg>مسح الجميع</button>
   </div>
 
   <div id="printMark" class="printMark">مبادرة دعم اليعقوبي الثانوي — تاريخ الطباعة: <span id="printHijri">—</span></div>
@@ -559,7 +556,7 @@ const LS_HEAD='moe_header_v14', LS_TEACHERS='moe_teacher_list_v1', LS_LAST='moe_
 function normalizedTeacherId(){
   const id=(document.getElementById('tId').value||'').replace(/\D+/g,'');
   if(/^\d{10}$/.test(id)) return id;
-  const name=(document.getElementById('tName').value||'').replace(/\s+/g,' ').trim();
+  const name=(document.getElementById('tName').value||'').replace(/\س+/g,' ').trim();
   return name?('name:'+name):'';
 }
 
@@ -780,9 +777,9 @@ function buildTools(){
     const tr=document.createElement('tr');
     tr.innerHTML=`<td class="seq">${i+1}</td>
       <td style="text-align:right"><span class="tool-name" style="font-weight:800">${t.title}</span><span class="tool-desc">${t.desc}</span></td>
-      <td style="text-align:center"><input type="checkbox" class="tool-proof" title="شاهد مُتاح؟"></td>
-      <td><div class="pills"><div class="pill" data-v="2">مُفعل</div><div class="pill" data-v="1">إلى حد ما</div><div class="pill" data-v="0">غير مُفعل</div></div></td>
-      <td><textarea class="tool-reason" placeholder="اكتب السبب عند (غير مُفعل/إلى حد ما)"></textarea></td>`;
+      <td class="td-proof"><input type="checkbox" class="tool-proof" title="شاهد مُتاح؟"></td>
+      <td class="td-activate"><div class="pills"><div class="pill" data-v="2">مُفعل</div><div class="pill" data-v="1">إلى حد ما</div><div class="pill" data-v="0">غير مُفعل</div></div></td>
+      <td class="td-reason"><textarea class="tool-reason" placeholder="اكتب السبب عند (غير مُفعل/إلى حد ما)"></textarea></td>`;
     tBody.appendChild(tr);
   });
   [...document.querySelectorAll('.pills')].forEach((set)=>{
@@ -915,7 +912,7 @@ const toast=document.getElementById('toast'), toastText=document.getElementById(
 function showToast(msg,ms=2000){ toastText.textContent=msg; toast.style.display='flex'; setTimeout(()=>{toast.style.display='none';},ms); }
 document.getElementById('toastClose').addEventListener('click',()=>toast.style.display='none');
 
-/* التحقق قبل الاعتماد (كامل) */
+/* التحقق قبل الاعتماد */
 const boxInfo=document.getElementById('boxInfo');
 function clearErrors(){ boxInfo.classList.remove('section-error'); [tName,tId].forEach(el=>el.classList.remove('input-error')); document.querySelectorAll('.tool-reason').forEach(t=>t.classList.remove('input-error')); }
 function mark(el){ el.classList.add('input-error'); }
@@ -964,7 +961,7 @@ document.getElementById('finishVisitBtn').addEventListener('click', async ()=>{
   document.getElementById('done'+activeVisit).style.display='inline-block';
   await refreshApprovedPanel(true);
   calcAll();
-  showToast(`تم اعتماد الزيارة رقم (${activeVisit}).`,2000);
+  showToast(`تم اعتماد الزيارة رقم (${activeVisit}).`,2200);
 });
 
 /* حذف زيارة */
@@ -1058,7 +1055,7 @@ async function snapshotToCanvas(){
   const clone=cloneForSnapshot(); const holder=document.createElement('div');
   holder.style.position='fixed'; holder.style.left='-99999px'; holder.style.top='-99999px'; holder.style.width='210mm';
   holder.appendChild(clone); document.body.appendChild(holder);
-  const canvas=await html2canvas(clone,{scale:2.6, /* تعديل: دقة أعلى */ background:'#ffffff',scrollX:0,scrollY:0,useCORS:true,allowTaint:true});
+  const canvas=await html2canvas(clone,{scale:2.5,background:'#ffffff',scrollX:0,scrollY:0,useCORS:true,letterRendering:true});
   document.body.removeChild(holder); return canvas;
 }
 document.getElementById('printBtn').addEventListener('click', async ()=>{
@@ -1107,7 +1104,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==
   if(last){ if(/^\d{10}$/.test(last)){ tId.value=last; } else if(last.startsWith('name:')){ tName.value=last.replace(/^name:/,''); } }
   updateSignNames();
   buildTable(); buildTools();
-  await openDB(); // تهيئة مبكّرة
+  await openDB();
   await loadRecordForCurrentTeacher();
   await refreshApprovedPanel(false);
   calcAll();
