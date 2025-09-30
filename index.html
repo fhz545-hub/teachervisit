@@ -556,7 +556,7 @@ const LS_HEAD='moe_header_v14', LS_TEACHERS='moe_teacher_list_v1', LS_LAST='moe_
 function normalizedTeacherId(){
   const id=(document.getElementById('tId').value||'').replace(/\D+/g,'');
   if(/^\d{10}$/.test(id)) return id;
-  const name=(document.getElementById('tName').value||'').replace(/\س+/g,' ').trim();
+  const name=(document.getElementById('tName').value||'').replace(/\s+/g,' ').trim();
   return name?('name:'+name):'';
 }
 
