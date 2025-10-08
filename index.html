@@ -1092,7 +1092,7 @@ $('#btnFinalize').onclick=async ()=>{
 /* مسح/تصفير */
 $('#btnDeleteVisit').onclick=async ()=>{
   if(!confirm('هل تريد مسح هذه الزيارة لهذا المعلم؟')) return;
-  store[activeVisit]=zeroMatrix()[activeVisit-1];
+store[activeVisit]=zeroMatrix();
   buildLearning(); buildTools(); $('#supportArea').value=''; $('#v'+activeVisit+'h').textContent='—'; $('#visitDateInline').value=''; await saveDraft(); snack('تم مسح الزيارة.');
 };
 $('#btnClearAll').onclick=async ()=>{ if(!confirm('مسح جميع السجلات؟')) return; await dbClear(); store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()}; buildLearning(); buildTools(); $('#supportArea').value=''; ['v1h','v2h','v3h'].forEach(id=>$('#'+id).textContent='—'); $('#visitDateInline').value=''; snack('تم المسح الكلي.'); };
