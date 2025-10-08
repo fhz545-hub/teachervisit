@@ -799,56 +799,130 @@ lensSelect.addEventListener('change',async e=>{
   lensMenu.style.display='none';
 });
 
-/* استيراد Excel/CSV */
+/* استيراد Excel/CSV — نسخة محسّنة تتحمّل تباين العناوين والفراغات والرموز */
 $('#lensImport').onclick=()=>$('#excelInput').click();
+
+function arNorm(s){
+  if(!s) return '';
+  // إزالة التشكيل/المد/المسافات المضاعفة وتحويل الأرقام العربية إلى لاتينية
+  const diac=/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g; // التشكيل
+  const tatweel=/\u0640/g; // ـ
+  const arabNums={'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+  return String(s)
+    .replace(diac,'')
+    .replace(tatweel,'')
+    .replace(/[0-9\u0660-\u0669]/g,ch=>arabNums[ch]??ch)   // أرقام عربية → لاتينية
+    .replace(/\s+/g,' ')
+    .trim()
+    .toLowerCase();
+}
+function findHeaderIndex(headers, aliases){
+  const H=headers.map(h=>arNorm(h));
+  for(const a of aliases){
+    const i=H.findIndex(h=> h.includes(a) || a.includes(h));
+    if(i>-1) return i;
+  }
+  return -1;
+}
+
 $('#excelInput').addEventListener('change',async e=>{
-  const f=e.target.files[0]; if(!f) return;
+  const f=e.target.files[0]; e.target.value='';
+  if(!f) return;
+
   try{
-    const buf = await f.arrayBuffer();
-    const wb = XLSX.read(buf,{type:'array',raw:false,cellDates:true});
-    const sh = wb.Sheets[wb.SheetNames[0]];
-    let rows = XLSX.utils.sheet_to_json(sh,{header:1,defval:''});
+    const buf=await f.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array',raw:false,cellDates:true});
+
+    // اختر أول ورقة غير فارغة
+    let sh=null;
+    for(const name of wb.SheetNames){
+      const candidate=wb.Sheets[name];
+      const rows=XLSX.utils.sheet_to_json(candidate,{header:1,defval:''});
+      if(rows && rows.length && rows.some(r=>r.some(c=>String(c).trim()!=='') )){ sh=candidate; break; }
+    }
+    if(!sh){ snack('الملف لا يحتوي بيانات قابلة للقراءة.',false); return; }
+
+    // الصفوف
+    const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:''});
     if(!rows.length){ snack('الملف خالٍ.',false); return; }
-    const headers=(rows[0]||[]).map(h=>String(h).trim());
-    const idxName=headers.findIndex(h=>/الاسم|اسم\s+المعلم|name/i.test(h));
-    const idxId=headers.findIndex(h=>/هوية|رقم\s*الهوية|id|السجل/i.test(h));
-    const idxSpec=headers.findIndex(h=>/تخصص|subject|المادة/i.test(h));
-    const idxDeg=headers.findIndex(h=>/مؤهل|degree/i.test(h));
-    const idxExp=headers.findIndex(h=>/خبرة|الخبرة|years|سنوات/i.test(h));
-    const idxPhone=headers.findIndex(h=>/جوال|هاتف|phone/i.test(h));
-    const idxEmail=headers.findIndex(h=>/بريد|email/i.test(h));
+
+    // العناوين
+    const headersRaw=(rows[0]||[]).map(h=>String(h));
+
+    // خرائط عناوين مرنة
+    const idxName = findHeaderIndex(headersRaw, ['الاسم','اسم المعلم','اسم','name']);
+    let idxId    = findHeaderIndex(headersRaw, ['رقم الهوية','هوية','السجل','id','الهوية']);
+    const idxSpec = findHeaderIndex(headersRaw, ['التخصص','المادة','subject']);
+    const idxDeg  = findHeaderIndex(headersRaw, ['المرتبة','المؤهل','degree','مؤهل']);
+    const idxExp  = findHeaderIndex(headersRaw, ['سنوات الخبرة','الخبرة','years','خبرة']);
+    const idxPhone= findHeaderIndex(headersRaw, ['رقم الجوال','الجوال','هاتف','phone','رقم الهاتف']);
+    const idxEmail= findHeaderIndex(headersRaw, ['الايميل','البريد','email','البريد الالكتروني','البريد الإلكتروني']);
+
+    if(idxName===-1){
+      snack('تعذّر تحديد عمود الاسم بدقّة — سيتم اعتبار العمود الأوّل اسماً.',false);
+    }
+
+    // محاولة تخمين عمود الهوية إذا لم يُعثر عليه بعنوان
+    if(idxId===-1){
+      const guessCols = new Set();
+      rows.slice(1, Math.min(50, rows.length)).forEach(r=>{
+        r.forEach((val,ci)=>{
+          const s=String(val||'').replace(/\D+/g,'');
+          if(s.length===10){ guessCols.add(ci); }
+        });
+      });
+      if(guessCols.size===1){ idxId=Array.from(guessCols)[0]; }
+    }
+
+    // بناء السجلات
     const list=rows.slice(1).map(r=>{
-      const name=String(r[idxName]||'').trim(); if(!name) return null;
+      const name = String(idxName>-1 ? r[idxName] : r[0]).trim();
+      if(!name) return null;
+
+      const natId = String(idxId>-1 ? r[idxId] : '').replace(/\D+/g,'').slice(0,10);
+      const spec  = String(idxSpec>-1 ? r[idxSpec] : '').trim();
+      const degree= String(idxDeg>-1 ? r[idxDeg] : '').trim();
+      const exp   = String(idxExp>-1 ? r[idxExp] : '').trim();
+
+      let phone   = String(idxPhone>-1 ? r[idxPhone] : '').trim();
+      phone = phone ? phone.replace(/\D+/g,'') : '';
+
+      const email = String(idxEmail>-1 ? r[idxEmail] : '').trim();
+
       return {
-        teacherId: (String(r[idxId]||'').replace(/\D+/g,'').slice(0,10)) || ('name:'+name),
+        teacherId: natId || ('name:'+name),
         name,
-        nationalId: String(r[idxId]||'').replace(/\D+/g,'').slice(0,10),
-        spec: String(r[idxSpec]||'').trim(),
-        degree: String(r[idxDeg]||'').trim(),
-        exp: String(r[idxExp]||'').trim(),
-        phone: String(r[idxPhone]||'').replace(/\D+/g,''),
-        email: String(r[idxEmail]||'').trim(),
-        visits:{1:{finalized:false,draft:{ratings:zeroMatrix(),tools:[],reasons:[],support:[],supportDetailed:[],date:''}},2:{finalized:false,draft:{ratings:zeroMatrix(),tools:[],reasons:[],support:[],supportDetailed:[],date:''}},3:{finalized:false,draft:{ratings:zeroMatrix(),tools:[],reasons:[],support:[],supportDetailed:[],date:''}}}
+        nationalId: natId,
+        spec,
+        degree,
+        exp,
+        phone,
+        email,
+        visits:{
+          1:{finalized:false,draft:{ratings:zeroMatrix(),tools:[],reasons:[],support:[],supportDetailed:[],date:''}},
+          2:{finalized:false,draft:{ratings:zeroMatrix(),tools:[],reasons:[],support:[],supportDetailed:[],date:''}},
+          3:{finalized:false,draft:{ratings:zeroMatrix(),tools:[],reasons:[],support:[],supportDetailed:[],date:''}}
+        }
       };
     }).filter(Boolean);
-    for(const rec of list){ const old=await dbGet(rec.teacherId); await dbPut({...old,...rec}); }
-    snack('تم الاستيراد بنجاح. افتح الأسماء للاختيار.');
-    refreshLens();
-  }catch(err){ console.error(err); snack('فشل استيراد الملف.',false); }
-  e.target.value='';
+
+    if(!list.length){ snack('لم يتم العثور على صفوف صالحة للاستيراد. تحقّق من العناوين والبيانات.',false); return; }
+
+    // دمج مع الموجود وعدم فقدان بيانات سابقة
+    for(const rec of list){
+      const old=await dbGet(rec.teacherId);
+      await dbPut({...old, ...rec, teacherId:(old?.teacherId||rec.teacherId)});
+    }
+
+    snack(`تم استيراد ${list.length} سجل بنجاح. افتح "الأسماء" للاختيار.`,true);
+    await refreshLens();
+
+  }catch(err){
+    console.error(err);
+    snack('فشل استيراد الملف. تأكّد من أن الصيغة xlsx/csv والعناوين واضحة.',false);
+  }
 });
 
-/* تصدير قالب Excel */
-$('#lensTemplate').onclick=()=>{
-  const data=[
-    { "اسم المعلم":"فهد حامد", "رقم الهوية":"1012345678", "التخصص":"رياضيات", "المرتبة":"بكالوريوس", "سنوات الخبرة":"5", "رقم الجوال":"9665xxxxxxxx", "الايميل":"example@school.edu.sa" },
-    { "اسم المعلم":"— اكتب الاسم —", "رقم الهوية":"", "التخصص":"", "المرتبة":"", "سنوات الخبرة":"", "رقم الجوال":"9665", "الايميل":"example@school.edu.sa" }
-  ];
-  const ws=XLSX.utils.json_to_sheet(data);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"المعلمين");
-  XLSX.writeFile(wb,"قالب_المعلمين.xlsx");
-};
 
 /* الحافظة */
 $('#btnVault').onclick=async ()=>{
