@@ -69,6 +69,7 @@ h1{
 .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px}
 .fld{height:38px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:#fff;font:inherit;text-align:center;width:100%}
 .col-3{grid-column:span 3/span 3}.col-12{grid-column:span 12/span 12}
+.col-6{grid-column:span 6/span 6}
 .fld-inline{border:0;background:transparent;padding:6px 8px;text-align:center;border-radius:6px}
 .fld-inline:focus{outline:2px solid rgba(15,122,102,0.06);background:#fff}
 
@@ -79,10 +80,11 @@ h1{
 .btn-ic.tiny{padding:6px 8px}
 <!-- ============ PART 2 / 25 ============ -->
 /* المؤشرات */
-.hmeterTop{margin:8px auto 4px;text-align:center}
-.globalInline{margin-inline-start:8px;font-family:"Cairo";font-size:clamp(14px,1vw + 11px,18px);font-weight:800}
+.hmeterTop{margin:10px auto 6px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.hmeterTop .metaLine{font-size:12.2px;color:var(--moe-dark);font-weight:800}
+.globalInline{margin-inline-start:8px;font-family:"Cairo";font-size:12px;font-weight:800}
 .globalInline.good{color:var(--good)}.globalInline.mid{color:var(--mid)}.globalInline.bad{color:var(--bad)}
-.hbar{position:relative;width:min(700px,95vw);height:14px;border:1px solid var(--border);border-radius:999px;background:linear-gradient(90deg,#ef4444 0%,#f59e0b 50%,#16a34a 100%);margin:4px auto 6px}
+.hbar{position:relative;width:min(700px,95vw);height:14px;border:1px solid var(--border);border-radius:999px;background:linear-gradient(90deg,#ef4444 0%,#f59e0b 50%,#16a34a 100%);margin:0 auto}
 .hthumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--moe-dark)}
 
 .visits{display:flex;gap:clamp(12px,2vw,24px);align-items:flex-start;justify-content:center;flex-wrap:wrap;overflow:auto}
@@ -209,9 +211,27 @@ textarea.comms-preview{min-height:200px;border:1px dashed var(--line);border-rad
 .help{font-size:12px;color:#0c594e}
 .warn{color:#b42318;font-weight:800}
 
+/* أزرار عائمة (الشرح + منصة التنظيم) */
+.fab-wrap{position:fixed;left:14px;bottom:18px;display:flex;flex-direction:column;gap:10px;z-index:2300}
+.fab{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:44px;min-width:44px;padding:0 14px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.22);
+  background:linear-gradient(180deg,var(--moe-green),var(--moe-dark));
+  color:#fff;font-weight:900;cursor:pointer;
+  box-shadow:0 16px 44px rgba(12,89,78,.22), 0 0 0 3px rgba(15,122,102,.10);
+  transition:.12s;
+}
+.fab:hover{transform:translateY(-2px);filter:saturate(115%)}
+.fab.secondary{
+  background:linear-gradient(180deg,#0fb3b0,#0c594e);
+}
+.fab .mini{font-size:12px;font-weight:900}
+.fab .ic{font-size:16px;line-height:1}
+
 /* طباعة */
 @media print{
-  .no-print,.toolbar-row,.scroll-arrows,#snackbar,#approvedPanel,#commsPanel,#importWizard,#helpPanel{display:none!important}
+  .no-print,.toolbar-row,.scroll-arrows,.fab-wrap,#snackbar,#approvedPanel,#commsPanel,#importWizard,#helpPanel{display:none!important}
   body{background:#fff}
 }
 @media (max-width:900px){.grid{grid-template-columns:repeat(2,1fr)} .visits{justify-content:center}}
@@ -248,6 +268,9 @@ textarea.comms-preview{min-height:200px;border:1px dashed var(--line);border-rad
     <button class="btn-ic tiny" id="btnReport" title="عرض التقرير">📄 تقرير</button>
     <button class="btn-ic tiny" id="btnComms" title="مراسلات">✉️ مراسلات</button>
     <button class="btn-ic tiny" id="btnPDFAll" title="تجميع الزيارات الثلاث في PDF واحد">📄 بي دي إف</button>
+
+    <!-- زر جديد بجوار زر الشرح -->
+    <a class="btn-ic tiny" id="btnHub" href="https://fhz545-hub.github.io/Teachers/" target="_blank" rel="noopener" title="فتح منصة التنظيم المدرسي في صفحة مستقلة">🏫 منصة التنظيم</a>
     <button class="btn-ic tiny" id="btnHelp" title="شرح استخدام الاستمارة">❓ شرح</button>
   </div>
 
@@ -255,6 +278,11 @@ textarea.comms-preview{min-height:200px;border:1px dashed var(--line);border-rad
   <div class="box" id="boxInfo">
     <h3><span>المعلومات العامة</span></h3>
     <div class="grid" style="padding:10px">
+
+      <!-- إضافات: الإدارة + المدرسة (افتراضي) -->
+      <input class="fld fld-inline col-6" id="h-dir" value="الإدارة العامة للتعليم بالمنطقة الشرقية" readonly>
+      <input class="fld fld-inline col-6" id="h-school" value="ثانوية اليعقوبي بالخبر" readonly>
+
       <input class="fld fld-inline col-3 req" id="tName" placeholder="اسم المعلم">
       <input class="fld fld-inline col-3" id="tId" placeholder="رقم الهوية (10 أرقام)" inputmode="numeric" maxlength="10">
       <input class="fld fld-inline col-3 req" id="tSpec" placeholder="التخصص / المادة">
@@ -266,10 +294,10 @@ textarea.comms-preview{min-height:200px;border:1px dashed var(--line);border-rad
     </div>
   </div>
 
-  <!-- المؤشرات -->
+  <!-- المؤشرات (مُنتصف + خط صغير) -->
   <div class="hmeterTop">
-    <span>المؤشر الشامل للأداء <b id="globalPctInline" class="globalInline">ضعيف</b></span>
-    <div class="globalRow"><div class="hbar"><div class="hthumb" id="globalThumb" style="left:0%"></div></div></div>
+    <div class="metaLine">المؤشر الشامل للأداء <b id="globalPctInline" class="globalInline">ضعيف</b></div>
+    <div class="hbar"><div class="hthumb" id="globalThumb" style="left:0%"></div></div>
   </div>
 
   <!-- الزيارات -->
@@ -455,6 +483,17 @@ textarea.comms-preview{min-height:200px;border:1px dashed var(--line);border-rad
   <button id="scrollUp" title="أعلى">▲</button>
   <button id="scrollDown" title="أسفل">▼</button>
 </div>
+
+<!-- أزرار عائمة (مميزة) -->
+<div class="fab-wrap no-print" aria-label="أزرار عائمة">
+  <button class="fab secondary" id="fabHub" title="فتح منصة التنظيم المدرسي">
+    <span class="ic">🏫</span><span class="mini">المنصة</span>
+  </button>
+  <button class="fab" id="fabHelp" title="شرح الاستخدام">
+    <span class="ic">❓</span><span class="mini">شرح</span>
+  </button>
+</div>
+
 <!-- ============ PART 7 / 25 ============ -->
 <script>
 /* أدوات مساعدة عامة */
@@ -965,7 +1004,7 @@ async function saveDraft(){
   setVisitMeter(); setGlobalMeter();
   saveLastContext();
 }
-<!-- ============ PART 14 / 25 (COMPLETE) ============ -->
+<!-- ============ PART 14 / 25 ============ -->
 async function renderFromRecord(){
   const rec=await ensureRecord(); if(!rec) return;
 
@@ -996,7 +1035,6 @@ async function renderFromRecord(){
   if(det.length>=4){
     $('#supportArea').value=det.map(x=>x.text).join('\n');
   }else{
-    // لا نكتب فوق إن كان المستخدم كتب يدويًا
     ensureSupport();
   }
 
@@ -1494,474 +1532,518 @@ function openReport(){
   w.document.close();
 }
 <!-- ============ PART 19 / 25 ============ -->
-/* توليد تقرير شامل (PDF) للزيارات الثلاث */
-$('#btnPDFAll').onclick=async ()=>{ await saveDraft(); openAllVisitsPDF(); };
+/* ======== تقرير شامل (تجميع الزيارات الثلاث) + طباعة إلى PDF ======== */
+$('#btnPDFAll').onclick=()=>openAllPDF();
 
-/* حساب درجة زيارة من لقطة محفوظة */
-function scoreFromSnapshot(ratings, tools){
-  const area= (ratings||[]).flat().filter(Boolean);
-  const areaPct=area.length? (area.reduce((a,b)=>a+b,0)/(area.length*3))*85:0;
-  const tScaled=((tools||[]).reduce((a,b)=>a+(b===2?1:(b===1?0.5:0)),0)/((tools||[]).length||1))*15;
-  return Math.min(100,Math.round(areaPct+tScaled));
+function escapeHtml(s){
+  return String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 }
 
-/* دعم من لقطة محفوظة (بدون الاعتماد على DOM) */
-function supportFromSnapshot(ratings, tools, reasons){
-  const worst=[];
-  (ratings||[]).forEach((domainArr,fi)=>{
-    const arr=(domainArr||[]).filter(v=>v>0);
-    const avg=arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;
-    worst.push({fi,avg});
-  });
-  worst.sort((a,b)=>a.avg-b.avg);
-  const out=[];
+function visitName(v){ return v===1?'الأولى':(v===2?'الثانية':'الثالثة (دعم)'); }
 
-  function pickFor(fi){
-    const dom=fields[fi].name;
-    const scores=(ratings?.[fi]||[]);
-    const hasWeak=scores.some(v=>v===1), hasMid=scores.some(v=>v===2);
-    const bank=supportBank[dom]||[];
-    if(hasWeak) return bank[0];
-    if(hasMid) return bank[1]||bank[0];
-    return bank[2]||bank[0];
-  }
+function buildVisitBlockHTML(v, rec){
+  const name=escapeHtml($('#tName').value.trim()||rec?.name||'—');
+  const nid=escapeHtml((($('#tId').value||'').trim())||rec?.nationalId||'—');
+  const spec=escapeHtml((($('#tSpec').value||'').trim())||rec?.spec||'—');
+  const lesson=escapeHtml((($('#lesson').value||'').trim())||rec?.lesson||'—');
+  const klass=escapeHtml((($('#class').value||'').trim())||rec?.class||'—');
+  const principal=escapeHtml((localStorage.getItem(LS_PREFIX+'principal')||$('#pr1Name').textContent||'—').trim());
+  const date=escapeHtml((rec?.visits?.[v]?.draft?.date)||$('#v'+v+'h').textContent||'—');
+  const p=visitScore(v), lvl=levelLabel(p);
 
-  if(worst[0]){ const l=pickFor(worst[0].fi); if(l) out.push(l); }
-  if(worst[1]){ const l=pickFor(worst[1].fi); if(l) out.push(l); }
-
-  (tools||[]).map((v,i)=>({i,v})).sort((a,b)=>a.v-b.v).slice(0,2).forEach(({i,v})=>{
-    const t=(toolsData[i]||{}).title||'أداة';
-    let text=v>=2?`توسيع تفعيل ${t} عبر قالب جاهز.`:v===1?`ترقية ${t} بإضافة سؤال بنائي فوري.`:`بدء تفعيل ${t} بتجربة قصيرة داخل الحصة.`;
-    const why=(reasons||[])[i]; if(why) text+=` (مانع: ${String(why).slice(0,40)})`;
-    out.push({text,src:`أداة: ${t}`});
-  });
-  return out.filter(Boolean).slice(0,4);
-}
-
-function htmlForVisit(v, rec){
-  const snap=rec?.visits?.[v]?.draft || {};
-  const ratings = snap.ratings || zeroMatrix();
-  const tools   = snap.tools || [];
-  const reasons = snap.reasons || [];
-  const date    = snap.date || '—';
-  const p = scoreFromSnapshot(ratings, tools);
-  const lvl = levelLabel(p);
-  const vLbl = v===1?'الأولى':(v===2?'الثانية':'الثالثة (دعم)');
-
+  // learning rows
   let learnHTML='';
   fields.forEach((f,fi)=>{
     let rows='';
     f.items.forEach((pair,ii)=>{
       const [label]=pair;
-      const vScore=ratings?.[fi]?.[ii]||0;
-      const lvlCell=vScore===3?'متميز':(vScore===2?'متوسط':(vScore===1?'ضعيف':'—'));
+      const vv=(store?.[v]?.[fi]?.[ii])||0;
+      const lvlCell=vv===3?'متميز':(vv===2?'متوسط':(vv===1?'ضعيف':'—'));
       const ok=learnBank[f.name][label].ok, need=learnBank[f.name][label].need;
-      const okCell=(vScore===3?ok:(vScore===2?'تقدم يحتاج تثبيتًا.':'—'));
-      const needCell=(vScore>0 && vScore<=2?need:'—');
-      rows+=`<tr><td>${label}</td><td>${lvlCell}</td><td>${okCell}</td><td>${needCell}</td></tr>`;
+      const okCell=(vv===3?ok:(vv===2?'تقدم يحتاج تثبيتًا.':'—'));
+      const needCell=(vv>0 && vv<=2?need:'—');
+      rows+=`<tr>
+        <td>${escapeHtml(label)}</td>
+        <td><b>${lvlCell}</b></td>
+        <td>${escapeHtml(okCell)}</td>
+        <td>${escapeHtml(needCell)}</td>
+      </tr>`;
     });
-    learnHTML+=`<tr><th colspan="4" class="ghead">${f.name}</th></tr>${rows}`;
+    learnHTML+=`<tr><th colspan="4" class="ghead">${escapeHtml(f.name)}</th></tr>${rows}`;
   });
 
+  // tools
+  const tStates = rec?.visits?.[v]?.draft?.tools || [];
+  const tReasons= rec?.visits?.[v]?.draft?.reasons || [];
   let toolsHTML='';
   toolsData.forEach((t,i)=>{
-    const s=tools[i];
+    const s=tStates[i];
     const lv=s===2?'مُفعل':(s===1?'إلى حد ما':(s===0?'غير مُفعل':'—'));
-    toolsHTML+=`<tr><td>${i+1}</td><td>${t.title}<div class="mini">${t.proof||''}</div></td><td>${lv}</td><td>${(reasons[i]||'—')}</td></tr>`;
+    toolsHTML+=`<tr>
+      <td>${i+1}</td>
+      <td>${escapeHtml(t.title)}<div class="mini">${escapeHtml(t.proof||'')}</div></td>
+      <td><b>${escapeHtml(lv)}</b></td>
+      <td>${escapeHtml(tReasons[i]||'—')}</td>
+    </tr>`;
   });
 
-  const det = (snap.supportDetailed && snap.supportDetailed.length>=4)
-    ? snap.supportDetailed
-    : supportFromSnapshot(ratings, tools, reasons);
+  // support
+  const det=(rec?.visits?.[v]?.draft?.supportDetailed||[]).slice(0,4);
+  const suppHTML=(det.length?det:[]).map(o=>`<li>□ ${escapeHtml(o.text)} <span class="srcBadge">${escapeHtml(o.src||'')}</span></li>`).join('');
 
-  const suppHTML=(det||[]).slice(0,4)
-    .map(o=>`<li>□ ${o.text} <span class="srcBadge">${o.src||''}</span></li>`).join('');
-
-  return { learnHTML, toolsHTML, suppHTML, vLbl, lvl, date };
-}
-<!-- ============ PART 20 / 25 ============ -->
-function openAllVisitsPDF(){
-  const rec = loadedRecord || {
-    name:($('#tName').value||'').trim(),
-    nationalId:($('#tId').value||'').replace(/\D+/g,'').slice(0,10),
-    spec:$('#tSpec').value||'',
-    lesson:$('#lesson').value||'',
-    class:$('#class').value||''
-  };
-  const name=(rec.name||($('#tName').value||'—').trim())||'—';
-  const nid = rec.nationalId || $('#tId').value || '—';
-  const spec= rec.spec || $('#tSpec').value || '—';
-  const lesson= rec.lesson || $('#lesson').value || '—';
-  const klass= rec.class || $('#class').value || '—';
-  const principal=(localStorage.getItem(LS_PREFIX+'principal')||$('#pr1Name').textContent||'—').trim();
-
-  const perV = [1,2,3].map(v=>htmlForVisit(v, rec));
-
-  const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-  <title>تقرير زيارات — ${name}</title>
-  <style>
-    body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
-    .sheet{width:185mm; margin:0 auto; padding:10mm 10mm 12mm; box-sizing:border-box}
-    .hdrImg{width:100%;height:auto;display:block;border-radius:18px;overflow:hidden;margin:0 0 8px 0}
-    .hdrImg img{width:100%;height:auto;display:block}
-    h3{margin:8px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
-    .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px}
-    .badge{display:inline-block;border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:700;font-size:11px}
-    table{width:100%;border-collapse:collapse;table-layout:fixed}
-    th,td{border:1px solid #cfe1dd;padding:6px;font-size:11px;vertical-align:top;word-wrap:break-word;text-align:center}
-    th{background:#0c594e;color:#fff}
-    .sub th{background:#f0f7f5;color:#0c594e}
-    .ghead{background:#0c594e;color:#fff;text-align:center}
-    .mini{font-size:10px;opacity:.9}
-    .tfoot-brand td{background:#e8f4f1;border-top:3px solid #0f7a66;padding:4px 6px}
-    ul{margin:6px 0 0 0;padding:0 18px}
-    li{margin:4px 0}
-    .srcBadge{display:inline-block;padding:.1rem .4rem;border-radius:8px;border:1px solid #0f7a66;color:#0f7a66;background:#f5fffb;margin-inline-start:6px;font-size:10px;font-weight:800}
-    .signs-inline{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:10px}
-    .signItem{border:1px solid #cfe1dd;padding:6px 10px;border-radius:10px;min-width:48%;text-align:center;font-size:11px}
-    .footnames{margin:10px 0 4px;text-align:center;font-size:11px}
-    .page{page-break-after:always}
-    .page:last-child{page-break-after:auto}
-    @media print {.sheet{margin:0 auto}}
-  </style></head><body>
-  ${perV.map((S)=>`
-    <div class="sheet page">
-      <div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>
-
-      <div class="badges">
-        <span class="badge">اسم المعلم: <b>${name}</b></span>
-        <span class="badge">الهوية: ${nid||'—'}</span>
-        <span class="badge">التخصص: ${spec||'—'}</span>
-        <span class="badge">عنوان الدرس: ${lesson||'—'}</span>
-        <span class="badge">الفصل: ${klass||'—'}</span>
-        <span class="badge">الزيارة: ${S.vLbl} — المستوى: <b>${S.lvl}</b></span>
-        <span class="badge">تاريخ الزيارة: ${S.date||'—'}</span>
-      </div>
-
-      <h3>عملية التعليم والتعلّم</h3>
-      <table>
-        <thead class="sub"><tr><th>العنصر</th><th>المستوى</th><th>جوانب التميّز</th><th>الاحتياجات</th></tr></thead>
-        <tbody>${S.learnHTML}</tbody>
-        <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
-      </table>
-
-      <h3>الأدوات المساندة لعملية التعليم والتعلّم</h3>
-      <table>
-        <thead class="sub"><tr><th>م</th><th>الأداة</th><th>التفعيل</th><th>أسباب عدم التفعيل</th></tr></thead>
-        <tbody>${S.toolsHTML}</tbody>
-        <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
-      </table>
-
-      <h3>الدعم المقدّم للمعلم</h3>
-      <ul>${S.suppHTML}</ul>
-
-      <div class="signs-inline">
-        <div class="signItem">اسم المعلم وتوقيعه: <b>${name}</b></div>
-        <div class="signItem">اسم المدير وتوقيعه: <b>${principal}</b></div>
-      </div>
-
-      <div class="footnames">حرر في: ${S.date||'—'}</div>
+  return `
+  <div class="visitBlock">
+    <div class="vHead">
+      <div class="vTitle">الزيارة ${escapeHtml(visitName(v))}</div>
+      <div class="vMeta">المؤشر: <b>${escapeHtml(lvl)}</b> (${p}%) • التاريخ: <b>${date}</b></div>
     </div>
-  `).join('')}
-  <script>
-    window.addEventListener('load',()=>{
-      document.title=${JSON.stringify('تقرير زيارات — '+name)};
-      setTimeout(()=>window.print(), 300);
-    });
-  <\/script>
-  </body></html>`;
 
-  const w = window.open('about:blank','_blank');
+    <div class="badges">
+      <span class="badge">اسم المعلم: <b>${name}</b></span>
+      <span class="badge">الهوية: ${nid}</span>
+      <span class="badge">التخصص: ${spec}</span>
+      <span class="badge">عنوان الدرس: ${lesson}</span>
+      <span class="badge">الفصل: ${klass}</span>
+    </div>
+
+    <h3>عملية التعليم والتعلّم</h3>
+    <table>
+      <thead class="sub"><tr><th>العنصر</th><th>المستوى</th><th>جوانب التميّز</th><th>الاحتياجات</th></tr></thead>
+      <tbody>${learnHTML}</tbody>
+      <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
+    </table>
+
+    <h3>الأدوات المساندة لعملية التعليم والتعلّم</h3>
+    <table>
+      <thead class="sub"><tr><th>م</th><th>الأداة</th><th>التفعيل</th><th>أسباب عدم التفعيل</th></tr></thead>
+      <tbody>${toolsHTML}</tbody>
+      <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
+    </table>
+
+    <h3>الدعم المقدّم للمعلم</h3>
+    <ul>${suppHTML || '<li>—</li>'}</ul>
+
+    <div class="signs-inline">
+      <div class="signItem">اسم المعلم وتوقيعه: <b>${name}</b></div>
+      <div class="signItem">اسم المدير وتوقيعه: <b>${principal}</b></div>
+    </div>
+  </div>`;
+}
+
+async function openAllPDF(){
+  const rec=await ensureRecord(); if(!rec){ snack('أدخل اسم المعلم أو الهوية أولاً.',false); return; }
+
+  // تحديث الدونات/الحفظ قبل التجميع
+  await saveDraft();
+
+  const headerImg = REPORT_HEADER_IMG;
+  const name=escapeHtml($('#tName').value.trim()||rec.name||'—');
+  const all = [1,2,3].map(v=>buildVisitBlockHTML(v, rec)).join('');
+
+  const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+    <title>تقرير شامل — ${name}</title>
+    <style>
+      body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
+      .sheet{width:190mm;margin:0 auto;padding:8mm 8mm 10mm;box-sizing:border-box}
+      .hdrImg{width:100%;height:auto;display:block;border-radius:18px;overflow:hidden;margin:0 0 8px 0;border:1px solid #e6efec}
+      .hdrImg img{width:100%;height:auto;display:block}
+      h2{margin:6px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
+      h3{margin:8px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
+      .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 8px}
+      .badge{display:inline-block;border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:700;font-size:11px}
+      .visitBlock{border:1px solid #e6efec;border-radius:14px;padding:8px 8px 10px;margin:10px 0;break-inside:avoid}
+      .vHead{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px dashed #cfe1dd;padding-bottom:6px;margin-bottom:6px}
+      .vTitle{font-weight:900;color:#0c594e}
+      .vMeta{font-size:11px;color:#0c594e;font-weight:800}
+      table{width:100%;border-collapse:collapse;table-layout:fixed}
+      th,td{border:1px solid #cfe1dd;padding:6px;font-size:11px;vertical-align:top;word-wrap:break-word;text-align:center}
+      th{background:#0c594e;color:#fff}
+      .sub th{background:#f0f7f5;color:#0c594e}
+      .ghead{background:#0c594e;color:#fff}
+      .mini{font-size:10px;opacity:.9}
+      .tfoot-brand td{background:#e8f4f1;border-top:3px solid #0f7a66;padding:4px 6px}
+      ul{margin:6px 0 0 0;padding:0 18px}
+      li{margin:4px 0;text-align:right}
+      .srcBadge{display:inline-block;padding:.1rem .4rem;border-radius:8px;border:1px solid #0f7a66;color:#0f7a66;background:#f5fffb;margin-inline-start:6px;font-size:10px;font-weight:800}
+      .signs-inline{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap}
+      .signItem{border:1px solid #cfe1dd;padding:6px 10px;border-radius:10px;min-width:48%;text-align:center;font-size:11px}
+      .foot{margin:8px 0 0;text-align:center;font-size:11px;color:#0c594e}
+      @media print{ .sheet{margin:0 auto} }
+    </style></head><body>
+      <div class="sheet">
+        <div class="hdrImg"><img src="${headerImg}" alt=""></div>
+        <h2>تقرير شامل لزيارات المعلم</h2>
+        ${all}
+        <div class="foot">حرر في: ${escapeHtml($('#visitDateInline').value||hijriNow())}</div>
+      </div>
+      <script>
+        // افتح نافذة الطباعة مباشرة (اختر "Save as PDF")
+        window.onload=()=>setTimeout(()=>window.print(), 250);
+      <\/script>
+    </body></html>`;
+
+  const w=window.open('about:blank','_blank');
   w.document.write(html);
   w.document.close();
 }
-<!-- ============ PART 21 / 25 ============ -->
-/* الحافظة + مراسلات + مسح + تحقق */
+<!-- ============ PART 20 / 25 ============ -->
+/* ======== الاعتماد + الحافظة (المُزارون) ======== */
 function syncSignNames(){
-  const n=$('#tName').value||'—';
-  ['sn1','sn2','sn3'].forEach(id=>$('#'+id).textContent=n);
+  const nm=($('#tName').value||'').trim()||'—';
+  ['sn1','sn2','sn3'].forEach(id=>$('#'+id).textContent=nm);
 }
 
-['#tName','#tSpec','#degree','#exp','#class','#lesson','#tId'].forEach(sel=>{
-  $(sel)?.addEventListener('input', dfn(()=>{ saveDraft(); syncSignNames(); },200));
-});
+async function refreshVault(){
+  const box=$('#approvedPanel'), listEl=$('#approvedList');
+  const all=(await dbAll())||[];
+  const approved=all.filter(r=>{
+    const v=r.visits||{};
+    return !!(v[1]?.finalized || v[2]?.finalized || v[3]?.finalized);
+  }).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ar'));
+  if(!approved.length){ listEl.textContent='—'; return; }
+  listEl.innerHTML=approved.map(r=>{
+    const v=r.visits||{};
+    const c=(v[1]?.finalized?1:0)+(v[2]?.finalized?1:0)+(v[3]?.finalized?1:0);
+    const dot=c===1?'🟨':(c>=2?'🟩':'🟥');
+    const tail=r.nationalId?` • ${r.nationalId}`:'';
+    return `<div class="name-chip" data-k="${r.teacherId}">${dot} ${escapeHtml(r.name||'—')}${escapeHtml(tail)}</div>`;
+  }).join('');
 
-/* الحافظة */
-$('#btnVault').onclick=async ()=>{
-  const list=await dbAll();
-  const pane=$('#approvedPanel'), cont=$('#approvedList');
-  cont.innerHTML='';
-  const uniq=new Map();
-
-  (list||[]).forEach(rec=>{
-    const has=(rec.visits?.[1]?.finalized)||(rec.visits?.[2]?.finalized)||(rec.visits?.[3]?.finalized);
-    if(!has) return;
-    uniq.set(rec.teacherId,rec);
+  $$('#approvedList .name-chip').forEach(ch=>{
+    ch.onclick=async ()=>{
+      const k=ch.getAttribute('data-k'); if(!k) return;
+      const rec=await dbGet(k); if(!rec) return;
+      $('#tName').value=rec.name||'';
+      $('#tId').value=rec.nationalId||'';
+      $('#tSpec').value=rec.spec||'';
+      $('#degree').value=rec.degree||'';
+      $('#exp').value=rec.exp||'';
+      $('#class').value=rec.class||'';
+      $('#lesson').value=rec.lesson||'';
+      fixedKey=rec.teacherId; loadedRecord=rec;
+      await renderFromRecord();
+      box.style.display='none';
+    };
   });
+}
 
-  if(!uniq.size){
-    cont.textContent='لا يوجد معلمون معتمدون بعد.';
-  }else{
-    [...uniq.values()].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ar')).forEach(rec=>{
-      const v1=!!(rec.visits?.[1]?.finalized), v2=!!(rec.visits?.[2]?.finalized), v3=!!(rec.visits?.[3]?.finalized);
-      const labels=[]; if(v1) labels.push('١'); if(v2) labels.push('٢'); if(v3) labels.push('دعم');
-      const count=(v1?1:0)+(v2?1:0)+(v3?1:0);
-      const color=count===0?'#ef4444':(count===1?'#f59e0b':'#16a34a');
-
-      const div=document.createElement('div');
-      div.className='name-chip';
-      div.style.borderColor=color;
-      div.style.background=color+'12';
-      div.style.color='#123b37';
-      div.textContent=`${rec.name||'—'} — الزيارة: ${labels.join('، ')}`;
-      div.title='انقر للفتح';
-
-      div.addEventListener('click',async ()=>{
-        $('#tName').value=rec.name||'';
-        $('#tId').value=rec.nationalId||'';
-        $('#tSpec').value=rec.spec||'';
-        $('#degree').value=rec.degree||'';
-        $('#exp').value=rec.exp||'';
-        $('#class').value=rec.class||'';
-        $('#lesson').value=rec.lesson||'';
-
-        fixedKey=rec.teacherId; loadedRecord=rec;
-        activeVisit = rec.visits?.[2]?.finalized?2:(rec.visits?.[1]?.finalized?1:3);
-
-        await renderFromRecord();
-        pane.style.display='none';
-      });
-      cont.appendChild(div);
-    });
-  }
-  pane.style.display='block';
+$('#btnVault').onclick=async ()=>{
+  const box=$('#approvedPanel');
+  box.style.display = (box.style.display==='block')?'none':'block';
+  if(box.style.display==='block') await refreshVault();
 };
 $('#apClose').onclick=()=>$('#approvedPanel').style.display='none';
 
-/* مراسلات */
-$('#btnComms').onclick=()=>{
-  $('#commsPanel').style.display='block';
-  $('#commsTxt').value=composeSummary();
-};
-$('#commsClose').onclick=()=>{ $('#commsPanel').style.display='none'; };
-
-$('#editDefaults').onclick=()=>{
-  localStorage.setItem(LS_PREFIX+'waPhone', ($('#waPhone').value||'').trim());
-  localStorage.setItem(LS_PREFIX+'mailTo',  ($('#mailTo').value||'').trim());
-  snack('تم حفظ بيانات المراسلات الافتراضية.');
-};
-
-$('#btnFetchFromDB').onclick=async()=>{
-  const key=currentKey();
-  if(!key){ snack('أدخل اسم/هوية المعلم أولًا.',false); return; }
-  const rec=await dbGet(key) || await ensureRecord();
-  if(!rec){ snack('لا يوجد سجل للمعلم.',false); return; }
-
-  $('#waPhone').value=(rec.phone&&rec.phone.trim())||(localStorage.getItem(LS_PREFIX+'waPhone')||'9665');
-  $('#mailTo').value =(rec.email&&rec.email.trim())||(localStorage.getItem(LS_PREFIX+'mailTo')||'example@school.edu.sa');
-  snack('تم استدعاء البريد والجوال من السجل.');
-};
-<!-- ============ PART 22 / 25 ============ -->
-function composeSummary(){
-  const school=$('#h-school')?.textContent?.trim()||'';
-  const dir=$('#h-dir')?.textContent?.trim()||'';
-  const name=$('#tName').value.trim()||'—';
-  const nid=$('#tId').value||'—';
-  const spec=$('#tSpec').value||'—';
-  const lesson=$('#lesson').value||'—';
-  const klass=$('#class').value||'—';
-  const vLbl=activeVisit===1?'الأولى':activeVisit===2?'الثانية':'الثالثة (دعم)';
-  const date=$('#v'+activeVisit+'h').textContent||$('#visitDateInline').value||hijriNow();
-  const kpi=levelLabel(visitScore(activeVisit));
-
-  const tools=getToolsStateFromUI()
-    .map((s,i)=>`${toolsData[i].title}: ${s===2?'مُفعل':s===1?'إلى حد ما':s===0?'غير مُفعل':'—'}`)
-    .join(' | ');
-
-  const reasons=getToolReasonsFromUI()
-    .map((r,i)=>r?`${toolsData[i].title}: ${r}`:null)
-    .filter(Boolean).join(' | ') || '—';
-
-  const det=supportFromLogicDetailed();
-  const support=det.map((o,i)=>`${i+1}) ${o.text} [${o.src}]`).join('\n');
-
-  const principal=(localStorage.getItem(LS_PREFIX+'principal')||$('#pr1Name').textContent||'').trim();
-
-  return `المدرسة: ${school} — ${dir}
-المعلم: ${name} — الهوية: ${nid} — التخصص: ${spec}
-زيارة: ${vLbl} — التاريخ: ${date} — المستوى: ${kpi}
-عنوان الدرس: ${lesson} — الفصل: ${klass}
-
-الأدوات المساندة وتفعيلها:
-${tools}
-
-الأسباب/الشواهد:
-${reasons}
-
-الدعم المقترح:
-${support}
-
-اسم المدير: ${principal}`;
-}
-
-$('#btnMakeComms').onclick=()=>$('#commsTxt').value=composeSummary();
-
-$('#btnCopyComms').onclick=()=>{
-  $('#commsTxt').select();
-  document.execCommand('copy');
-  snack('تم نسخ الرسالة.');
-};
-
-$('#btnOpenWA').onclick=async()=>{
-  const key=currentKey();
-  const rec= key ? (await dbGet(key)) : null;
-  const phone=($('#waPhone').value||rec?.phone||localStorage.getItem(LS_PREFIX+'waPhone')||'9665').replace(/\D+/g,'');
-  const txt=encodeURIComponent($('#commsTxt').value||composeSummary());
-  window.open(`https://wa.me/${phone}?text=${txt}`,'_blank');
-  if(rec){ rec.lastWhatsAppSent=Date.now(); await dbPut(rec); }
-};
-
-$('#btnOpenMail').onclick=async()=>{
-  const key=currentKey();
-  const rec= key ? (await dbGet(key)) : null;
-  const to=$('#mailTo').value || rec?.email || (localStorage.getItem(LS_PREFIX+'mailTo')||'example@school.edu.sa');
-  const subject=encodeURIComponent('تقرير زيارة معلم');
-  const body=encodeURIComponent($('#commsTxt').value||composeSummary());
-  window.location.href=`mailto:${to}?subject=${subject}&body=${body}`;
-  if(rec){ rec.lastEmailSent=Date.now(); await dbPut(rec); }
-};
-<!-- ============ PART 23 / 25 ============ -->
-/* اعتماد ومسح */
-function validateBeforeFinalize(){
-  const errs=[];
-  $$('.req').forEach(el=>el.classList.remove('input-error'));
-
-  if(!$('#tName').value.trim()){ errs.push('اسم المعلم'); $('#tName').classList.add('input-error'); }
-  if(!$('#tSpec').value.trim()){ errs.push('التخصص'); $('#tSpec').classList.add('input-error'); }
-
-  const count=store[activeVisit].flat().filter(v=>v>0).length;
-  if(count<6) errs.push('اختيارات كافية في التعليم والتعلّم (٦ على الأقل)');
-
-  const tMarked=getToolsStateFromUI().filter(v=>v!==null).length;
-  if(tMarked<4) errs.push('تحديد تفعيل ٤ أدوات على الأقل');
-
-  const det=supportFromLogicDetailed();
-  if(det.length<4) errs.push('اكتمال ٤ أسطر في الدعم المقدّم');
-
-  return errs;
-}
-
+/* اعتماد الزيارة الحالية */
 $('#btnFinalize').onclick=async ()=>{
-  const errs=validateBeforeFinalize();
-  if(errs.length){ snack('نواقص: '+errs.join(' • '),false); return; }
-  await saveDraft();
   const rec=await ensureRecord();
-  rec.visits[activeVisit].finalized=true;
-  await dbPut(rec);
-  snack('تم اعتماد الزيارة — توجه للتقرير للطباعة.',true);
-};
+  if(!rec){ snack('أدخل اسم المعلم أو الهوية أولاً.',false); return; }
 
-$('#btnDeleteVisit').onclick=async ()=>{
-  if(!confirm('هل تريد مسح هذه الزيارة لهذا المعلم؟')) return;
-  store[activeVisit]=zeroMatrix();
-  buildLearning(); buildTools();
-  $('#supportArea').value='';
-  $('#v'+activeVisit+'h').textContent='—';
-  $('#visitDateInline').value='';
-  $('#sh'+activeVisit).textContent='—';
+  // تحقق بسيط للحقول المطلوبة
+  const reqOk = ($$('#boxInfo .req')||[]).every(i=>String(i.value||'').trim()!=='');
+  if(!reqOk){ snack('أكمل الحقول الأساسية (الاسم + التخصص).',false); return; }
+
   await saveDraft();
-  snack('تم مسح الزيارة.');
+
+  rec.visits[activeVisit].finalized=true;
+  rec.visits[activeVisit].draft.date = $('#v'+activeVisit+'h').textContent || $('#visitDateInline').value || hijriNow();
+
+  await dbPut(rec);
+  snack(`تم اعتماد الزيارة ${visitName(activeVisit)} وحفظها في الحافظة.`,true);
+  await refreshLens();
 };
 
-$('#btnClearAll').onclick=async ()=>{
-  if(!confirm('مسح جميع السجلات؟')) return;
-  await dbClear();
-  store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()};
-  buildLearning(); buildTools();
-  $('#supportArea').value='';
-  ['v1h','v2h','v3h'].forEach(id=>$('#'+id).textContent='—');
-  ['sh1','sh2','sh3'].forEach(id=>$('#'+id).textContent='—');
-  $('#visitDateInline').value='';
-  snack('تم المسح الكلي.');
-};
-<!-- ============ PART 24 / 25 ============ -->
-/* لوحة الشرح — حقن المحتوى وإظهار */
-const helpTextHTML = `
-  <div class="help-note">ما هذه الأداة؟</div>
-  <p>أداة مسانِدة غير رسمية لتيسير متابعة الزيارات الصفّية وتحسين الممارسة داخل المدرسة. لا تُنشئ أثرًا إداريًا مُلزِمًا؛ الاعتماد يتم عبر النماذج والقنوات المعتمدة.</p>
+/* مسح زيارة واحدة */
+$('#btnDeleteVisit').onclick=async ()=>{
+  const rec=await ensureRecord(); if(!rec){ snack('لا يوجد معلم محدد.',false); return; }
 
-  <h3>كيف أستخدمها؟ (خطوات سريعة)</h3>
-  <ul>
-    <li><b>البيانات الأساسية:</b> اكتب اسم المعلّم، التخصص، ورقم الهوية (إن لزم).</li>
-    <li><b>التقييم:</b> اختر مستوى كل عنصر: ضعيف/متوسط/متميّز — تتحدّث المؤشرات تلقائيًا.</li>
-    <li><b>الأدوات المساندة:</b> فعِّل ما طُبّق، واذكر سبب عدم التفعيل عند الحاجة.</li>
-    <li><b>الدعم المقترح:</b> تُنشئ توصيات تلقائيًا ويمكنك تعديلها تربويًا.</li>
-    <li><b>التنقّل بين الزيارات:</b> انقر دوائر الزيارة (الأولى/الثانية/الثالثة). الثالثة للدعم خصوصًا لمن مستواه ضعيف أو خبرته ≤ سنتين.</li>
-  </ul>
+  const ok = confirm(`تأكيد مسح بيانات الزيارة ${visitName(activeVisit)} لهذا المعلم؟`);
+  if(!ok) return;
 
-  <h3>الأسماء والاستيراد (🔍/⬆️/📄)</h3>
-  <ul>
-    <li><b>استيراد:</b> يدعم Excel (XLSX)، CSV، وPDF النصّي. إن لم تُعرف الأعمدة، يظهر معالج لاختيار (الاسم/الهوية/…)، والغرض التيسير فقط.</li>
-    <li><b>قالب جاهز:</b> نزّل ملف XLSX/CSV واملأه ثم استورده.</li>
-    <li><b>اختيار سريع:</b> بعد الاستيراد ابحث باسم المعلّم واختره.</li>
-  </ul>
+  store[activeVisit]=zeroMatrix();
+  rec.visits[activeVisit]={finalized:false,draft:zeroSupport()};
+  await dbPut(rec);
 
-  <h3>التقرير والمراسلات (📄/✉️)</h3>
-  <ul>
-    <li><b>تقرير الزيارة الحالية:</b> صفحة مطبوعة للمعاينة والطباعة.</li>
-    <li><b>مراسلات مختصرة:</b> توليد ملخص لإرساله عبر واتساب/البريد بدون بيانات حساسة.</li>
-    <li><b>تصدير PDF موحّد:</b> يجمع الزيارات الثلاث في صفحات متتالية محليًا داخل المتصفح.</li>
-  </ul>
-
-  <h3>الحافظة (🗂️)</h3>
-  <p>تعرض المعلّمين الذين تم اعتماد زياراتهم داخل الأداة وتتيح الرجوع السريع لسجلّهم.</p>
-
-  <h3>خصوصية البيانات</h3>
-  <div class="help-privacy">
-    التخزين محليًا على جهازك (IndexedDB/LocalStorage). لا إرسال لخوادم، ويمكنك الحذف عبر زر ♻️ مسح الجميع في أي وقت.
-  </div>
-
-  <h3>إرشادات تربوية سريعة</h3>
-  <ul>
-    <li>اربط النشاط بالهدف التعلّمي وأداة تقويم مناسبة.</li>
-    <li>نوّع الاستراتيجيات ووزّع فرص المشاركة بعدالة.</li>
-    <li>استخدم تقويمات قصيرة فورية للتغذية الراجعة، ووثّق الأثر بأدلّة مؤشرّة (إتقان/مشاركة).</li>
-  </ul>
-
-  <h3>أسئلة شائعة (FAQ)</h3>
-  <ul>
-    <li><b>لا تظهر الأسماء بعد الاستيراد؟</b> تأكد من تعيين الأعمدة الصحيحة في المعالج (الاسم/الهوية/…)، ثم احفظ.</li>
-    <li><b>كيف أعدّل التوصيات؟</b> افتح حقل «الدعم المقترح» واكتب التعديل المناسب قبل الحفظ/الطباعة.</li>
-    <li><b>مشاكل الطباعة؟</b> اختر حجم A4، وهوامش افتراضية، وتعطيل رؤوس/تذييلات المتصفح.</li>
-    <li><b>هل تُرسل بياناتي؟</b> لا. كل شيء محليّ، ويمكنك مسح البيانات بالكامل.</li>
-  </ul>
-
-  <div class="help-note">تذكير قصير</div>
-  <p>«أداة مسانِدة غير رسمية—للاطلاع والتيسير الداخلي. لا يُعتدّ بملفاتها كوثائق اعتماد.»</p>
-`;
-$('#btnHelp').onclick=()=>{
-  $('#helpBody').innerHTML = helpTextHTML;
-  $('#helpPanel').style.display='block';
-};
-$('#helpClose').onclick=()=>{ $('#helpPanel').style.display='none'; };
-<!-- ============ PART 25 / 25 ============ -->
-/* بداية */
-function calcAll(){ setVisitMeter(); setGlobalMeter(); }
-
-function initial(){
-  $('#waPhone').value = localStorage.getItem(LS_PREFIX+'waPhone') || '9665';
-  $('#mailTo').value  = localStorage.getItem(LS_PREFIX+'mailTo') || '';
+  // إعادة بناء الواجهة
   buildLearning();
   buildTools();
-  renderFromRecord();
-  setDonut(1,0); setDonut(2,0); setDonut(3,0);
-  setVisitMeter(); setGlobalMeter();
-}
-initial();
+  $('#supportArea').value='';
+  $('#v'+activeVisit+'h').textContent='—';
+  $('#sh'+activeVisit).textContent='—';
+  $('#visitDateInline').value='';
 
-/* أسهم التمرير */
-$('#scrollUp').onclick=()=>window.scrollBy({top:-window.innerHeight*0.9,behavior:'smooth'});
-$('#scrollDown').onclick=()=>window.scrollBy({top:window.innerHeight*0.9,behavior:'smooth'});
+  await saveDraft();
+  snack('تم مسح الزيارة المحددة.',true);
+};
+
+/* مسح الجميع (قاعدة البيانات) */
+$('#btnClearAll').onclick=async ()=>{
+  const ok = confirm('سيتم مسح جميع السجلات المحفوظة (المعلمين والزيارات). هل أنت متأكد؟');
+  if(!ok) return;
+
+  await dbClear();
+
+  fixedKey=null; loadedRecord=null;
+  store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()};
+  activeVisit=1;
+
+  // مسح الحقول
+  ['tName','tId','tSpec','degree','exp','class','lesson'].forEach(id=>$('#'+id).value='');
+  ['v1h','v2h','v3h','sh1','sh2','sh3'].forEach(id=>$('#'+id).textContent='—');
+  $('#visitDateInline').value='';
+  $('#supportArea').value='';
+
+  buildLearning(); buildTools();
+  calcAll();
+  snack('تم مسح جميع البيانات المحفوظة.',true);
+};
+<!-- ============ PART 21 / 25 ============ -->
+/* ======== المراسلات (واتساب/بريد) ======== */
+$('#btnComms').onclick=()=>{ $('#commsPanel').style.display='block'; };
+$('#commsClose').onclick=()=>$('#commsPanel').style.display='none';
+
+(function loadCommsDefaults(){
+  const m=localStorage.getItem(LS_PREFIX+'mailTo')||'';
+  const p=localStorage.getItem(LS_PREFIX+'waPhone')||'';
+  if(m) $('#mailTo').value=m;
+  if(p) $('#waPhone').value=p;
+})();
+
+$('#editDefaults').onclick=()=>{
+  localStorage.setItem(LS_PREFIX+'mailTo', ($('#mailTo').value||'').trim());
+  localStorage.setItem(LS_PREFIX+'waPhone', ($('#waPhone').value||'').trim());
+  snack('تم حفظ بيانات المراسلات كافتراضي.');
+};
+
+$('#btnFetchFromDB').onclick=async ()=>{
+  const rec=await ensureRecord(); if(!rec){ snack('اختر معلمًا أولاً.',false); return; }
+  $('#mailTo').value = rec.email || $('#mailTo').value || '';
+  $('#waPhone').value = rec.phone || $('#waPhone').value || '';
+  snack('تم استدعاء البريد/الجوال من السجل.');
+};
+
+function commsMessage(){
+  const name=($('#tName').value||'').trim()||'المعلم';
+  const v=activeVisit;
+  const date=$('#v'+v+'h').textContent||$('#visitDateInline').value||hijriNow();
+  const p=visitScore(v);
+  const lvl=levelLabel(p);
+
+  const det=ensureSupport().slice(0,4).map(x=>`- ${x.text}`).join('\n');
+  const tools=getToolsStateFromUI();
+  const weakTools=tools
+    .map((s,i)=>({s,i,t:toolsData[i]?.title||''}))
+    .filter(o=>o.s===0)
+    .slice(0,2)
+    .map(o=>`• ${o.t}`)
+    .join('\n') || '—';
+
+  return `الأستاذ/ ${name} المحترم،
+إشارة لزيارة الحصة (الزيارة ${visitName(v)}) بتاريخ: ${date}
+بلغ مؤشر الأداء: ${p}% (${lvl}).
+
+أبرز مجالات الدعم المقترحة (قابلة للتنفيذ خلال أسبوعين):
+${det}
+
+أدوات بحاجة لتعزيز التفعيل:
+${weakTools}
+
+شاكرين تعاونكم، مع خالص التقدير.`;
+}
+
+$('#btnMakeComms').onclick=()=>{
+  $('#commsTxt').value = commsMessage();
+  snack('تم توليد نص الرسالة.');
+};
+
+$('#btnCopyComms').onclick=async ()=>{
+  try{
+    await navigator.clipboard.writeText($('#commsTxt').value||'');
+    snack('تم النسخ إلى الحافظة.');
+  }catch{
+    snack('تعذر النسخ. انسخ يدويًا.',false);
+  }
+};
+
+$('#btnOpenWA').onclick=()=>{
+  const phone=($('#waPhone').value||'').replace(/[^\d]/g,'');
+  if(!phone || phone.length<9){ snack('أدخل رقم واتساب بصيغة دولية صحيحة.',false); return; }
+  const msg=encodeURIComponent($('#commsTxt').value||commsMessage());
+  window.open(`https://wa.me/${phone}?text=${msg}`,'_blank');
+};
+
+$('#btnOpenMail').onclick=()=>{
+  const to=($('#mailTo').value||'').trim();
+  if(!to || !to.includes('@')){ snack('أدخل بريدًا صحيحًا.',false); return; }
+  const subj=encodeURIComponent(`تغذية راجعة — زيارة صفية (${visitName(activeVisit)})`);
+  const body=encodeURIComponent($('#commsTxt').value||commsMessage());
+  window.location.href=`mailto:${to}?subject=${subj}&body=${body}`;
+};
+<!-- ============ PART 22 / 25 ============ -->
+/* ======== لوحة الشرح (محتوى جاهز) ======== */
+function buildHelpHTML(){
+  return `
+    <div class="help-badge">الأسماء</div>
+    <div class="help-badge">الاستيراد</div>
+    <div class="help-badge">التقرير</div>
+    <div class="help-badge">اعتماد</div>
+    <div class="help-badge">مراسلات</div>
+
+    <h3>طريقة الاستخدام المختصرة</h3>
+    <ul>
+      <li>أدخل بيانات المعلم الأساسية (الاسم + التخصص) ويفضّل إدخال <b>رقم الهوية</b> لتفادي التكرار.</li>
+      <li>قيّم عناصر «عملية التعليم والتعلّم» باختيار (ضعيف/متوسط/متميز).</li>
+      <li>قيّم الأدوات المساندة، واكتب سبب عدم التفعيل عند (غير مفعّل/إلى حد ما).</li>
+      <li>سيُولَّد دعم للمعلم تلقائيًا في مربع «الدعم» (٤ أسطر) ويمكنك التعديل.</li>
+      <li>اضغط «✅ اعتمد» لحفظ الزيارة في الحافظة وإظهارها ضمن قائمة المعلمين المُزارين.</li>
+    </ul>
+
+    <div class="help-note">
+      <b>ملاحظة:</b> الزيارة الثالثة مخصصة للدعم، وتُتاح عند انخفاض المؤشر أو لخبرة ≤ سنتين.
+    </div>
+
+    <h3>الاستيراد والقالب</h3>
+    <ul>
+      <li>من «🔍 الأسماء» اختر «⬆️ استيراد» لاستيراد ملف Excel/CSV أو PDF نصّي.</li>
+      <li>إن لم يتعرف النظام على الأعمدة تلقائيًا سيظهر «مُعالج الاستيراد» لتعيين الأعمدة يدويًا.</li>
+      <li>زر «📄 قالب» ينشئ قالبًا جاهزًا لرفع قائمة المعلمين.</li>
+    </ul>
+
+    <div class="help-privacy">
+      <b>تنبيه خصوصية:</b> تُحفظ البيانات محليًا على جهازك (IndexedDB/LocalStorage) ولا تُرسل لأي جهة.
+    </div>
+  `;
+}
+
+$('#btnHelp').onclick=()=>{
+  $('#helpBody').innerHTML = buildHelpHTML();
+  $('#helpPanel').style.display='block';
+};
+$('#helpClose').onclick=()=>$('#helpPanel').style.display='none';
+
+/* أزرار عائمة */
+$('#fabHelp').onclick=()=>$('#btnHelp').click();
+$('#fabHub').onclick=()=>window.open('https://fhz545-hub.github.io/Teachers/','_blank');
+$('#btnHub').onclick=()=>{}; // رابط مباشر
+<!-- ============ PART 23 / 25 ============ -->
+/* ======== حسابات عامة + تفعيل المؤشرات ======== */
+function calcAll(){
+  // تحديث المقاييس
+  setDonut(1,visitScore(1));
+  setDonut(2,visitScore(2));
+  setDonut(3,visitScore(3));
+  setVisitMeter();
+  setGlobalMeter();
+  updateToolsSummary();
+  syncSignNames();
+}
+
+/* ربط تغييرات حقول البيانات العامة بالحفظ والمؤشرات */
+['tName','tId','tSpec','degree','exp','class','lesson'].forEach(id=>{
+  const el=$('#'+id);
+  el.addEventListener('input', dfn(async ()=>{
+    syncSignNames();
+    await saveDraft();
+    calcAll();
+  }, 220));
+});
+
+$('#supportArea').addEventListener('input', dfn(async ()=>{
+  await saveDraft();
+  calcAll();
+}, 240));
+
+/* جعل التاريخ الافتراضي للزيارة الحالية يظهر في الحقل */
+function syncInlineDate(){
+  const d=$('#v'+activeVisit+'h').textContent;
+  if(d && d!=='—') $('#visitDateInline').value=d;
+}
+
+/* عند تغيير رقم الهوية: إعادة تثبيت المفتاح إذا كان صحيحًا */
+$('#tId').addEventListener('blur', async ()=>{
+  const id=($('#tId').value||'').replace(/\D+/g,'');
+  if(/^\d{10}$/.test(id)){
+    fixedKey=null; // دع currentKey يلتقط الهوية
+    await saveDraft();
+    await refreshLens();
+  }
+});
+<!-- ============ PART 24 / 25 ============ -->
+/* ======== أسهم التمرير + تحسين تجربة الواجهة ======== */
+$('#scrollUp').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
+$('#scrollDown').onclick=()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+
+/* إغلاق اللوحات بالـ ESC */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    ['approvedPanel','commsPanel','helpPanel','importWizard'].forEach(id=>{
+      const el=$('#'+id);
+      if(el && el.style.display && el.style.display!=='none') el.style.display='none';
+    });
+    if(lensMenu) lensMenu.style.display='none';
+  }
+});
+
+/* منع إدخال غير الأرقام في الهوية */
+$('#tId').addEventListener('input',()=>{
+  const v=$('#tId').value.replace(/[^\d\u0660-\u0669]/g,'');
+  $('#tId').value=v;
+});
+<!-- ============ PART 25 / 25 ============ -->
+/* ======== تهيئة أولية (Startup) ======== */
+(async function init(){
+  fitHeaderToImage();
+
+  // التاريخ الافتراضي للزيارة الحالية
+  if(!$('#v1h').textContent || $('#v1h').textContent==='—'){
+    $('#v1h').textContent=hijriNow();
+    $('#sh1').textContent=$('#v1h').textContent;
+    $('#visitDateInline').value=$('#v1h').textContent;
+  }
+
+  // بناء الجداول أول مرة
+  buildLearning();
+  buildTools();
+  syncSignNames();
+
+  // استعادة آخر سياق
+  const ctx=loadLastContext();
+  if(ctx?.key){
+    const rec=await dbGet(ctx.key);
+    if(rec){
+      $('#tName').value=rec.name||'';
+      $('#tId').value=rec.nationalId||'';
+      $('#tSpec').value=rec.spec||'';
+      $('#degree').value=rec.degree||'';
+      $('#exp').value=rec.exp||'';
+      $('#class').value=rec.class||'';
+      $('#lesson').value=rec.lesson||'';
+      fixedKey=rec.teacherId; loadedRecord=rec;
+      activeVisit=ctx.activeVisit||1;
+      await renderFromRecord();
+      syncInlineDate();
+    }
+  }
+
+  // زر التقرير يقرأ الحالة الحالية
+  calcAll();
+
+  // زر تعيين تاريخ الزيارة الحالية عند عدم وجود تاريخ
+  if($('#v'+activeVisit+'h').textContent==='—'){
+    setVisitDate(activeVisit);
+    await saveDraft();
+  }
+
+  // ربط التبديل عبر الدونات مع التحديث النهائي
+  ['v1','v2','v3'].forEach((id,i)=>{
+    const v=i+1;
+    const el=$('#'+id);
+    el.addEventListener('mouseenter',()=>{ el.style.filter='saturate(115%)'; });
+    el.addEventListener('mouseleave',()=>{ el.style.filter=''; });
+  });
+
+  snack('جاهز للاستخدام. يمكنك الاستيراد من 🔍 الأسماء.',true);
+})();
 </script>
 </body>
 </html>
