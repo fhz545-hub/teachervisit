@@ -1684,387 +1684,356 @@ $('#tId').addEventListener('input',()=>{
 /* حفظ الدعم عند التعديل اليدوي */
 $('#supportArea').addEventListener('input',dfn(()=>{ saveDraft(); },240));
 </script>
-<!-- ============ PART 19 / 25 (FIXED) ============ -->
+<!-- ============ PART 19 / 20 (WORKING FIX for YOUR IDs) ============ -->
 <script>
 /* =======================
-   PART 19 FIXES (Report/PDF/Messages)
+   PART 19 (FIXED) — binds to YOUR buttons/IDs, NO conflicts
+   Buttons:
+   - btnReport  -> open single-visit report popup (print)
+   - btnPDFAll  -> open full report popup (print)  (solves "banner only" issue)
+   - btnComms   -> open comms panel + generate message
+   Comms panel buttons:
+   - btnMakeComms, btnCopyComms, btnOpenWA, btnOpenMail, commsClose
    ======================= */
 
-/* ====== Helpers ====== */
-const el = (id)=>document.getElementById(id);
+(function(){
+  // -------- Safe helpers (no conflicts) --------
+  const _el = (id)=>document.getElementById(id);
+  const esc = (s)=>String(s??'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 
-function escapeHtml(s){
-  return String(s ?? '').replace(/[&<>"']/g, m => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[m]));
-}
-
-function copyToClipboard(text){
-  return navigator.clipboard?.writeText(text).catch(()=>{
-    const ta=document.createElement('textarea');
-    ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px';
-    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-    ta.remove();
-  });
-}
-
-function snack(msg, ok=true){
-  // إذا عندك نظام Toast خاص في النسخة الأساسية، اتركه كما هو.
-  // هنا fallback بسيط:
-  try{
-    const n=el('snack');
-    if(n){ n.textContent=msg; n.style.display='block'; setTimeout(()=>n.style.display='none',2200); return; }
-  }catch{}
-  console.log(msg);
-  if(!ok) alert(msg);
-}
-
-/* ====== Defaults / Storage ====== */
-const LS_PREFIX = (window.LS_PREFIX || 'TEACH-VISIT-1447-');
-const REPORT_HEADER_IMG = (window.REPORT_HEADER_IMG || (window.headerImgSrc || '')); // ضع رابط صورة الهيدر هنا إن رغبت
-
-function getEduAdmin(){
-  return (localStorage.getItem(LS_PREFIX+'eduAdmin') || 'الإدارة العامة للتعليم بالمنطقة الشرقية').trim();
-}
-function getSchoolName(){
-  return (localStorage.getItem(LS_PREFIX+'schoolName') || 'ثانوية اليعقوبي بالخبر').trim();
-}
-function getPrincipal(){
-  return (localStorage.getItem(LS_PREFIX+'principal') || 'فهد حامد علي الزهراني').trim();
-}
-
-function nowHijriSafe(){
-  // إذا عندك دالة أم القرى في النسخة الأساسية استخدمها
-  try{
-    if(typeof window.getHijriUmmAlQura==='function') return window.getHijriUmmAlQura();
-  }catch{}
-  // fallback (تقريبي) للتاريخ النصي فقط
-  const d=new Date();
-  return d.toLocaleDateString('ar-SA-u-ca-islamic', {year:'numeric',month:'2-digit',day:'2-digit'});
-}
-
-/* ====== Visit labels ====== */
-function visitName(v){
-  return (v===1?'الأولى':(v===2?'الثانية':(v===3?'الثالثة':String(v))));
-}
-
-/* ====== Safe fetch record ====== */
-function ensureRecord(){
-  const name=(el('tName')?.value||'').trim();
-  const nid=(el('tId')?.value||'').trim();
-  if(!name && !nid) return null;
-  return {
-    name: name || '—',
-    nid: nid || '—',
-    spec: (el('tSpec')?.value||'—').trim(),
-    degree:(el('degree')?.value||'—').trim(),
-    lesson:(el('lesson')?.value||'—').trim(),
-    klass:(el('class')?.value||'—').trim(),
+  const toast = (msg, ok=true)=>{
+    // استخدم snack الموجودة عندك (PART 10) إن وجدت
+    try{ if(typeof window.snack === 'function') return window.snack(msg, ok); }catch{}
+    alert(msg);
   };
-}
 
-/* ====== Scores (fallback) ====== */
-function visitScore(v){
-  // إذا عندك محسّب الدرجات بالنسخة الأساسية استبدله بها
-  // هنا fallback: يحاول قراءة عنصر id="scoreV1/2/3" أو data-score
-  const n = el('scoreV'+v);
-  const p = n ? Number(n.textContent||n.dataset.score||0) : 0;
-  return isFinite(p)? Math.max(0,Math.min(100,Math.round(p))) : 0;
-}
-function levelLabel(p){
-  if(p>=90) return 'متميز';
-  if(p>=75) return 'متقدم';
-  if(p>=60) return 'مقبول';
-  if(p>0) return 'يحتاج دعم';
-  return '—';
-}
+  const copyText = async (text)=>{
+    try{
+      await navigator.clipboard.writeText(text);
+    }catch{
+      const ta=document.createElement('textarea');
+      ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    }
+  };
 
-/* ====== Builders (تقرير شامل) ====== */
-function buildVisitBlockHTML(v, rec){
-  const vLbl = visitName(v);
-  const p = visitScore(v);
-  const lvl = levelLabel(p);
+  // -------- Read header & teacher info from YOUR inputs --------
+  function getEduAdmin(){ return (_el('h-dir')?.value || 'الإدارة العامة للتعليم بالمنطقة الشرقية').trim(); }
+  function getSchool(){ return (_el('h-school')?.value || 'ثانوية اليعقوبي بالخبر').trim(); }
+  function getPrincipal(){
+    // اسم المدير محفوظ عندك في localStorage yaqfb_principal
+    try{
+      const p = localStorage.getItem('yaqfb_principal');
+      return (p || 'فهد حامد الزهراني').trim();
+    }catch{
+      return 'فهد حامد الزهراني';
+    }
+  }
+  function getHijriDate(){
+    return (_el('visitDateInline')?.value || _el('todayHijri')?.textContent || '').trim() || (typeof hijriNow==='function'?hijriNow():'—');
+  }
 
-  // تاريخ الزيارة: يدور بين عناصر محتملة
-  const date =
-    (el('v'+v+'h')?.textContent || el('visitDateInline')?.value || nowHijriSafe()).trim();
+  function getTeacher(){
+    const name = (_el('tName')?.value || '').trim();
+    const nid  = (_el('tId')?.value || '').trim();
+    if(!name && !nid) return null;
+    return {
+      name: name || '—',
+      nid:  nid || '—',
+      spec: (_el('tSpec')?.value || '—').trim(),
+      degree: (_el('degree')?.value || '—').trim(),
+      klass: (_el('class')?.value || '—').trim(),
+      lesson: (_el('lesson')?.value || '—').trim()
+    };
+  }
 
-  // محتوى الزيارة: إن كان عندك HTML جاهز بالنسخة الأساسية استخدمه هنا
-  // fallback: يعرض ملخص بسيط + خانة دعم
-  const supportList = (typeof ensureSupport==='function')
-    ? (ensureSupport()||[]).slice(0,4).map(o=>`<li>□ ${escapeHtml(o.text)} <span class="srcBadge">${escapeHtml(o.src||'')}</span></li>`).join('')
-    : `<li>□ متابعة تنفيذ استراتيجية تدريس مناسبة للدرس.</li>
-       <li>□ دعم في تنويع أدوات التقويم وقياس الفهم.</li>`;
+  function visitLabel(v){ return v===1?'الأولى':(v===2?'الثانية':'الثالثة'); }
 
-  return `
-    <section class="visitBlock">
-      <div class="vHead">
-        <div class="vTitle">الزيارة ${escapeHtml(vLbl)}</div>
-        <div class="vMeta">التاريخ: ${escapeHtml(date)} — المستوى: <b>${escapeHtml(lvl)}</b> (${p}%)</div>
-      </div>
+  // نستخدم visitScore الموجودة عندك (PART 12) لأنها صحيحة
+  function getVisitScoreSafe(v){
+    try{
+      if(typeof window.visitScore==='function') return Number(window.visitScore(v) || 0);
+    }catch{}
+    return 0;
+  }
+  function levelLabel2(p){
+    if(p>=80) return 'متميز';
+    if(p>=50) return 'متوسط';
+    return 'ضعيف';
+  }
 
-      <div class="badges">
-        <span class="badge">المعلم: ${escapeHtml(rec.name)}</span>
-        <span class="badge">الهوية: ${escapeHtml(rec.nid)}</span>
-        <span class="badge">التخصص: ${escapeHtml(rec.spec)}</span>
-        <span class="badge">الفصل: ${escapeHtml(rec.klass)}</span>
-        <span class="badge">عنوان الدرس: ${escapeHtml(rec.lesson)}</span>
-      </div>
+  function supportLines(){
+    // عندك ensureSupport() يرجع 4 عناصر مع src
+    try{
+      if(typeof window.ensureSupport==='function'){
+        const det = window.ensureSupport() || [];
+        return det.slice(0,4).map(o=>`□ ${o.text}${o.src?` (${o.src})`:''}`);
+      }
+    }catch{}
+    const t = (_el('supportArea')?.value || '').trim();
+    if(t) return t.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,4);
+    return [];
+  }
 
-      <h3 style="margin:10px 0 6px;color:#0f7a66;font-family:Cairo;text-align:center">الدعم المقدّم للمعلم</h3>
-      <ul>${supportList || '<li>—</li>'}</ul>
-    </section>
-  `;
-}
+  // -------- Report HTML builders --------
+  function reportHeaderHTML(rec){
+    const edu = esc(getEduAdmin());
+    const sch = esc(getSchool());
+    const pr  = esc(getPrincipal());
+    const dt  = esc(getHijriDate());
 
-/* =======================
-   ✅ 1) تقرير زيارة (Popup + Print)
-   ======================= */
-function openReport(){
-  const rec = ensureRecord();
-  if(!rec){ snack('أدخل اسم المعلم أو الهوية أولاً.', false); return; }
+    // صورة الهيدر نفس الصفحة
+    const hdrSrc = _el('hdrImg')?.getAttribute('src') || '';
+    const hdrImg = hdrSrc ? `<div class="hdrImg"><img src="${esc(hdrSrc)}" alt=""></div>` : '';
 
-  const v = (window.activeVisit || 1);
-  const vLbl = visitName(v);
-  const p = visitScore(v);
-  const lvl = levelLabel(p);
-  const date = (el('v'+v+'h')?.textContent || el('visitDateInline')?.value || nowHijriSafe()).trim();
-
-  const eduAdmin = getEduAdmin();
-  const schoolName = getSchoolName();
-  const principal = getPrincipal();
-
-  const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-  <title>تقرير زيارة — ${escapeHtml(rec.name)}</title>
-  <style>
-    @page{ size:A4; margin:10mm; }
-    body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
-    .toolbar{position:sticky;top:0;z-index:50;display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:10px 12px;background:#fff;border-bottom:1px solid #e6efec}
-    .btn{border:1px solid #cfe1dd;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer}
-    .sheet{max-width:190mm;margin:0 auto;padding:0}
-    .hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:10px 0;border:1px solid #e6efec}
-    .hdrImg img{width:100%;height:auto;display:block}
-    .headBox{border:1px solid #e6efec;border-radius:16px;background:#fbfdfc;padding:10px 12px;margin:0 0 10px}
-    .row{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
-    .cell{flex:1;min-width:240px;border:1px solid #cfe1dd;background:#e8f4f1;border-radius:12px;padding:8px 10px;font-weight:800}
-    .cell b{font-weight:900}
-    h2{margin:6px 0 8px;color:#0f7a66;font-family:"Cairo";text-align:center}
-    .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 10px}
-    .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:800;font-size:11px}
-    .block{break-inside:auto;page-break-inside:auto}
-    @media print{ .toolbar{display:none!important} .sheet{max-width:unset;margin:0} }
-  </style></head><body>
-    <div class="toolbar">
-      <button class="btn" onclick="window.print()">طباعة</button>
-      <button class="btn" onclick="window.close()">إغلاق</button>
-    </div>
-
-    <div class="sheet">
-      ${REPORT_HEADER_IMG ? `<div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>` : ``}
-
+    return `
+      ${hdrImg}
       <div class="headBox">
         <div class="row">
           <div class="cell">
-            <b>${escapeHtml(eduAdmin)}</b> — <b>${escapeHtml(schoolName)}</b><br>
-            اسم المعلم: <b>${escapeHtml(rec.name)}</b>
+            <b>${edu}</b> — <b>${sch}</b><br>
+            اسم المعلم: <b>${esc(rec.name)}</b>
           </div>
           <div class="cell" style="text-align:left">
-            مدير المدرسة: <b>${escapeHtml(principal)}</b><br>
-            التاريخ: <b>${escapeHtml(date)}</b>
+            مدير المدرسة: <b>${pr}</b><br>
+            التاريخ: <b>${dt}</b>
           </div>
         </div>
       </div>
+    `;
+  }
 
-      <h2>تقرير زيارة صفية — الزيارة ${escapeHtml(vLbl)}</h2>
+  function openPopup(html, title){
+    const w = window.open('about:blank','_blank');
+    if(!w){ toast('النافذة المنبثقة محجوبة من المتصفح. اسمح بالنوافذ المنبثقة للموقع.', false); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    try{ w.document.title = title || w.document.title; }catch{}
+  }
 
-      <div class="badges">
-        <span class="badge">الهوية: ${escapeHtml(rec.nid)}</span>
-        <span class="badge">التخصص: ${escapeHtml(rec.spec)}</span>
-        <span class="badge">المرتبة: ${escapeHtml(rec.degree)}</span>
-        <span class="badge">الفصل: ${escapeHtml(rec.klass)}</span>
-        <span class="badge">عنوان الدرس: ${escapeHtml(rec.lesson)}</span>
-        <span class="badge">المستوى: <b>${escapeHtml(lvl)}</b> (${p}%)</span>
+  function baseStyles(){
+    return `
+      <style>
+        @page{ size:A4; margin:10mm; }
+        body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
+        .toolbar{position:sticky;top:0;z-index:50;display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:10px 12px;background:#fff;border-bottom:1px solid #e6efec}
+        .btn{border:1px solid #cfe1dd;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer}
+        .sheet{max-width:190mm;margin:0 auto;padding:0}
+        .hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:10px 0;border:1px solid #e6efec}
+        .hdrImg img{width:100%;height:auto;display:block}
+        .headBox{border:1px solid #e6efec;border-radius:16px;background:#fbfdfc;padding:10px 12px;margin:0 0 10px}
+        .row{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
+        .cell{flex:1;min-width:240px;border:1px solid #cfe1dd;background:#e8f4f1;border-radius:12px;padding:8px 10px;font-weight:800}
+        .cell b{font-weight:900}
+        h2{margin:6px 0 10px;color:#0f7a66;font-family:"Cairo";text-align:center}
+        .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 10px}
+        .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:800;font-size:11px}
+        .blk{border:1px solid #e6efec;border-radius:14px;padding:10px;margin:10px 0;break-inside:auto;page-break-inside:auto}
+        ul{margin:6px 0 0 0;padding:0 18px}
+        li{margin:4px 0}
+        @media print{ .toolbar{display:none!important} .sheet{max-width:unset;margin:0} }
+      </style>
+    `;
+  }
+
+  function openSingleReport(){
+    const rec = getTeacher();
+    if(!rec){ toast('أدخل اسم المعلم أو رقم الهوية أولاً.', false); return; }
+
+    const v = (window.activeVisit || 1);
+    const score = getVisitScoreSafe(v);
+    const lvl = levelLabel2(score);
+
+    const lines = supportLines();
+    const list = lines.length ? lines.map(x=>`<li>${esc(x)}</li>`).join('') : '<li>—</li>';
+
+    const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+      <title>تقرير زيارة</title>
+      ${baseStyles()}
+    </head><body>
+      <div class="toolbar">
+        <button class="btn" onclick="window.print()">طباعة</button>
+        <button class="btn" onclick="window.close()">إغلاق</button>
       </div>
-
-      <div class="block">
-        ${buildVisitBlockHTML(v, rec)}
-      </div>
-    </div>
-  </body></html>`;
-
-  const w = window.open('about:blank','_blank');
-  w.document.write(html);
-  w.document.close();
-}
-
-/* =======================
-   ✅ 2) تقرير شامل (PDF/Print)
-   حل مشكلة الصفحة الأولى (بنر فقط)
-   ======================= */
-function openAllPDF(){
-  const rec = ensureRecord();
-  if(!rec){ snack('أدخل اسم المعلم أو الهوية أولاً.', false); return; }
-
-  const eduAdmin = getEduAdmin();
-  const schoolName = getSchoolName();
-  const principal = getPrincipal();
-  const dateHdr = (el('visitDateInline')?.value || nowHijriSafe()).trim();
-
-  const blocks = [1,2,3].map(v=>buildVisitBlockHTML(v, rec)).join('');
-
-  const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-  <title>تقرير شامل — ${escapeHtml(rec.name)}</title>
-  <style>
-    @page{ size:A4; margin:10mm; }
-    body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
-    .toolbar{position:sticky;top:0;z-index:50;display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:10px 12px;background:#fff;border-bottom:1px solid #e6efec}
-    .btn{border:1px solid #cfe1dd;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer}
-    .sheet{max-width:190mm;margin:0 auto;padding:0}
-    .hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:10px 0;border:1px solid #e6efec}
-    .hdrImg img{width:100%;height:auto;display:block}
-    .headBox{border:1px solid #e6efec;border-radius:16px;background:#fbfdfc;padding:10px 12px;margin:0 0 10px}
-    .row{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
-    .cell{flex:1;min-width:240px;border:1px solid #cfe1dd;background:#e8f4f1;border-radius:12px;padding:8px 10px;font-weight:800}
-    .cell b{font-weight:900}
-    h2{margin:6px 0 10px;color:#0f7a66;font-family:"Cairo";text-align:center}
-
-    .visitBlock{border:1px solid #e6efec;border-radius:14px;padding:8px 8px 10px;margin:10px 0}
-    .vHead{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px dashed #cfe1dd;padding-bottom:6px;margin-bottom:6px}
-    .vTitle{font-weight:900;color:#0c594e}
-    .vMeta{font-size:11px;color:#0c594e;font-weight:900}
-    .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 8px}
-    .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:800;font-size:11px}
-    ul{margin:6px 0 0 0;padding:0 18px}
-    li{margin:4px 0;text-align:right}
-    .srcBadge{display:inline-block;padding:.1rem .4rem;border-radius:8px;border:1px solid #0f7a66;color:#0f7a66;background:#f5fffb;margin-inline-start:6px;font-size:10px;font-weight:900}
-    .foot{margin:10px 0 0;text-align:center;font-size:11px;color:#0c594e}
-
-    /* ✅ الأهم: السماح بتجزئة المحتوى (حل صفحة البنر فقط) */
-    .visitBlock{break-inside:auto;page-break-inside:auto;}
-    table, tr, td, th{break-inside:auto;page-break-inside:auto;}
-
-    @media print{ .toolbar{display:none!important} .sheet{max-width:unset;margin:0} }
-  </style></head><body>
-    <div class="toolbar">
-      <button class="btn" onclick="window.print()">طباعة</button>
-      <button class="btn" onclick="window.close()">إغلاق</button>
-    </div>
-
-    <div class="sheet">
-      ${REPORT_HEADER_IMG ? `<div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>` : ``}
-
-      <div class="headBox">
-        <div class="row">
-          <div class="cell">
-            <b>${escapeHtml(eduAdmin)}</b> — <b>${escapeHtml(schoolName)}</b><br>
-            اسم المعلم: <b>${escapeHtml(rec.name)}</b>
-          </div>
-          <div class="cell" style="text-align:left">
-            مدير المدرسة: <b>${escapeHtml(principal)}</b><br>
-            التاريخ: <b>${escapeHtml(dateHdr)}</b>
-          </div>
+      <div class="sheet">
+        ${reportHeaderHTML(rec)}
+        <h2>تقرير زيارة صفية — الزيارة ${esc(visitLabel(v))}</h2>
+        <div class="badges">
+          <span class="badge">الهوية: ${esc(rec.nid)}</span>
+          <span class="badge">التخصص: ${esc(rec.spec)}</span>
+          <span class="badge">المرتبة: ${esc(rec.degree)}</span>
+          <span class="badge">الفصل: ${esc(rec.klass)}</span>
+          <span class="badge">عنوان الدرس: ${esc(rec.lesson)}</span>
+          <span class="badge">النتيجة: <b>${esc(lvl)}</b> (${score}%)</span>
+        </div>
+        <div class="blk">
+          <h3 style="margin:0 0 6px;color:#0c594e;text-align:center">الدعم المقدّم للمعلم</h3>
+          <ul>${list}</ul>
         </div>
       </div>
+    </body></html>`;
 
-      <h2>تقرير شامل لزيارات المعلم</h2>
+    openPopup(html, `تقرير زيارة — ${rec.name}`);
+  }
 
-      ${blocks}
+  function openAllReport(){
+    const rec = getTeacher();
+    if(!rec){ toast('أدخل اسم المعلم أو رقم الهوية أولاً.', false); return; }
 
-      <div class="foot">حرر في: ${escapeHtml(dateHdr)}</div>
-    </div>
-  </body></html>`;
+    const blocks = [1,2,3].map(v=>{
+      const score = getVisitScoreSafe(v);
+      const lvl = levelLabel2(score);
+      const dt = (_el('v'+v+'h')?.textContent || getHijriDate() || '—').trim();
 
-  const w = window.open('about:blank','_blank');
-  w.document.write(html);
-  w.document.close();
-}
+      const lines = (v===(window.activeVisit||1)) ? supportLines() : (
+        // لو عندك دعم محفوظ للزيارات الأخرى سيظهر عبر supportArea عند التنقل
+        []
+      );
+      const list = lines.length ? lines.map(x=>`<li>${esc(x)}</li>`).join('') : '<li>—</li>';
 
-/* =======================
-   ✅ 3) المراسلات (WhatsApp/Email)
-   ======================= */
-function buildMessageText(){
-  const rec = ensureRecord();
-  if(!rec) return '';
+      return `
+        <div class="blk">
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-weight:900;color:#0c594e">
+            <div>الزيارة ${esc(visitLabel(v))}</div>
+            <div>التاريخ: ${esc(dt)} — النتيجة: ${esc(lvl)} (${score}%)</div>
+          </div>
+          <div class="badges" style="margin-top:8px">
+            <span class="badge">الفصل: ${esc(rec.klass)}</span>
+            <span class="badge">عنوان الدرس: ${esc(rec.lesson)}</span>
+          </div>
+          <h3 style="margin:8px 0 6px;color:#0c594e;text-align:center">الدعم المقدّم للمعلم</h3>
+          <ul>${list}</ul>
+        </div>
+      `;
+    }).join('');
 
-  const eduAdmin = getEduAdmin();
-  const schoolName = getSchoolName();
-  const principal = getPrincipal();
-  const dateHdr = (el('visitDateInline')?.value || nowHijriSafe()).trim();
+    const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+      <title>تقرير شامل</title>
+      ${baseStyles()}
+    </head><body>
+      <div class="toolbar">
+        <button class="btn" onclick="window.print()">طباعة</button>
+        <button class="btn" onclick="window.close()">إغلاق</button>
+      </div>
+      <div class="sheet">
+        ${reportHeaderHTML(rec)}
+        <h2>تقرير شامل لزيارات المعلم</h2>
+        ${blocks}
+      </div>
+    </body></html>`;
 
-  const v = (window.activeVisit || 1);
-  const p = visitScore(v);
-  const lvl = levelLabel(p);
+    openPopup(html, `تقرير شامل — ${rec.name}`);
+  }
 
-  return [
-    `${eduAdmin}`,
-    `${schoolName}`,
-    `التاريخ: ${dateHdr}`,
-    `اسم المعلم: ${rec.name} — الهوية: ${rec.nid}`,
-    `التخصص: ${rec.spec} — الفصل: ${rec.klass} — الدرس: ${rec.lesson}`,
-    `نتيجة الزيارة (${visitName(v)}): ${lvl} (${p}%)`,
-    `مدير المدرسة: ${principal}`
-  ].join('\n');
-}
+  // -------- Comms (YOUR panel) --------
+  function buildCommsText(){
+    const rec = getTeacher();
+    if(!rec) return '';
 
-function generateMessages(){
-  const txt = buildMessageText();
-  if(!txt){ snack('أدخل اسم المعلم أو الهوية أولاً.', false); return; }
-  const out = el('msgOut');
-  if(out) out.value = txt;
-  snack('تم توليد الرسالة.');
-}
+    const edu = getEduAdmin();
+    const sch = getSchool();
+    const pr  = getPrincipal();
+    const dt  = getHijriDate();
+    const v   = (window.activeVisit || 1);
+    const score = getVisitScoreSafe(v);
+    const lvl = levelLabel2(score);
 
-function openWhatsApp(){
-  const txt = buildMessageText();
-  if(!txt){ snack('أدخل اسم المعلم أو الهوية أولاً.', false); return; }
-  const url = 'https://wa.me/?text=' + encodeURIComponent(txt);
-  window.open(url, '_blank', 'noopener');
-}
+    const lines = supportLines();
+    const support = lines.length ? ('\n' + lines.map(x=>'• '+x).join('\n')) : '';
 
-function openEmail(){
-  const txt = buildMessageText();
-  if(!txt){ snack('أدخل اسم المعلم أو الهوية أولاً.', false); return; }
-  const subject = `تقرير زيارة — ${ (el('tName')?.value||'—').trim() }`;
-  const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(txt)}`;
-  window.location.href = url;
-}
+    return [
+      `${edu}`,
+      `${sch}`,
+      `التاريخ: ${dt}`,
+      `المعلم: ${rec.name} — الهوية: ${rec.nid}`,
+      `التخصص: ${rec.spec} — المرتبة: ${rec.degree}`,
+      `الفصل: ${rec.klass} — الدرس: ${rec.lesson}`,
+      `نتيجة الزيارة (${visitLabel(v)}): ${lvl} (${score}%)`,
+      `الدعم المقترح:${support || '\n• —'}`,
+      `مدير المدرسة: ${pr}`
+    ].join('\n');
+  }
 
-async function copyMsg(){
-  const out = el('msgOut');
-  const txt = (out?.value || buildMessageText() || '').trim();
-  if(!txt){ snack('لا توجد رسالة للنسخ.', false); return; }
-  await copyToClipboard(txt);
-  snack('تم النسخ.');
-}
+  function openComms(){
+    const panel=_el('commsPanel');
+    if(!panel){ toast('لوحة المراسلات غير موجودة في الصفحة.', false); return; }
+    panel.style.display='block';
+    const txt=_el('commsTxt');
+    if(txt){
+      const msg=buildCommsText();
+      if(!msg){ toast('أدخل اسم المعلم أو رقم الهوية أولاً.', false); return; }
+      txt.value = msg;
+    }
+  }
 
-/* =======================
-   Bindings (تأكد من IDs)
-   ======================= */
-(function bindPart19(){
-  const bReport = el('btnReport');
-  const bPDF    = el('btnPDF');
-  const bWhats  = el('btnWhats');
-  const bEmail  = el('btnEmail');
-  const bGen    = el('btnGenMsg');
-  const bCopy   = el('btnCopyMsg');
+  function closeComms(){
+    const panel=_el('commsPanel');
+    if(panel) panel.style.display='none';
+  }
 
-  if(bReport) bReport.addEventListener('click', openReport);
-  if(bPDF)    bPDF.addEventListener('click', openAllPDF);
+  function makeComms(){
+    const txt=_el('commsTxt');
+    const msg=buildCommsText();
+    if(!msg){ toast('أدخل اسم المعلم أو رقم الهوية أولاً.', false); return; }
+    if(txt) txt.value=msg;
+    toast('تم توليد الرسالة.');
+  }
 
-  // المراسلات
-  if(bGen)   bGen.addEventListener('click', generateMessages);
-  if(bWhats) bWhats.addEventListener('click', openWhatsApp);
-  if(bEmail) bEmail.addEventListener('click', openEmail);
-  if(bCopy)  bCopy.addEventListener('click', copyMsg);
+  async function copyComms(){
+    const txt=_el('commsTxt');
+    const v=(txt?.value||'').trim();
+    if(!v){ toast('لا توجد رسالة للنسخ.', false); return; }
+    await copyText(v);
+    toast('تم النسخ.');
+  }
 
-  // توليد تلقائي عند تغيير بيانات المعلم (اختياري)
-  ['tName','tId','tSpec','degree','lesson','class'].forEach(id=>{
-    const x = el(id);
-    if(x) x.addEventListener('input', ()=>{ try{ generateMessages(); }catch{} });
-  });
+  function openWA(){
+    const phone = (_el('waPhone')?.value || '').trim();
+    const msg = (_el('commsTxt')?.value || buildCommsText() || '').trim();
+    if(!msg){ toast('لا توجد رسالة لإرسالها.', false); return; }
+    const base = phone ? `https://wa.me/${encodeURIComponent(phone)}?text=` : `https://wa.me/?text=`;
+    window.open(base + encodeURIComponent(msg), '_blank', 'noopener');
+  }
+
+  function openMail(){
+    const mail = (_el('mailTo')?.value || '').trim();
+    const msg = (_el('commsTxt')?.value || buildCommsText() || '').trim();
+    if(!msg){ toast('لا توجد رسالة لإرسالها.', false); return; }
+    const rec = getTeacher() || {name:'—'};
+    const subject = `تقرير زيارة — ${rec.name}`;
+    const url = `mailto:${encodeURIComponent(mail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msg)}`;
+    window.location.href = url;
+  }
+
+  // -------- Bind buttons (YOUR IDs) --------
+  function bind(){
+    const bReport=_el('btnReport');
+    const bPDF=_el('btnPDFAll');
+    const bComms=_el('btnComms');
+
+    if(bReport) bReport.addEventListener('click', openSingleReport);
+    if(bPDF)    bPDF.addEventListener('click', openAllReport);
+    if(bComms)  bComms.addEventListener('click', openComms);
+
+    // panel controls
+    _el('commsClose')?.addEventListener('click', closeComms);
+    _el('btnMakeComms')?.addEventListener('click', makeComms);
+    _el('btnCopyComms')?.addEventListener('click', copyComms);
+    _el('btnOpenWA')?.addEventListener('click', openWA);
+    _el('btnOpenMail')?.addEventListener('click', openMail);
+  }
+
+  // Bind after DOM is ready (safe)
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', bind);
+  }else{
+    bind();
+  }
 })();
 </script>
 <!-- ============ /PART 19 ============ -->
+
 
 
 </body>
