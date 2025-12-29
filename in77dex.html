@@ -1726,18 +1726,163 @@ $('#fabHub').addEventListener('contextmenu',(e)=>{
 });
 </script>
 
+<style>
+/* ====== HELP UI (Premium + MOE colors) ====== */
+.helpWrap{padding:6px 6px 2px}
+.helpTop{
+  padding:12px;
+  border:1px solid var(--border,#e6efec);
+  border-radius:16px;
+  background:
+    radial-gradient(1200px 260px at 85% 0%, rgba(15,122,102,.12), transparent 55%),
+    linear-gradient(180deg, #ffffff, var(--moe-lite,#e8f4f1));
+  box-shadow:0 10px 26px rgba(12,89,78,.08);
+}
+.helpTop h3{
+  margin:0;
+  font-family:"Cairo","Tajawal";
+  color:var(--moe-dark,#0c594e);
+  font-size:18px;
+  letter-spacing:.2px;
+}
+.helpLead{
+  margin:6px 0 0;
+  color:var(--ink,#123b37);
+  font-weight:700;
+  opacity:.92;
+  line-height:1.9;
+}
+.helpGrid{
+  margin-top:10px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+@media (max-width:820px){.helpGrid{grid-template-columns:1fr}}
 
- <script>
-/* ====== HELP (مختصر + واضح + منسق) ====== */
+.helpCard{
+  position:relative;
+  border:1px solid var(--border,#e6efec);
+  background:linear-gradient(180deg,#ffffff,#fbfdfc);
+  border-radius:16px;
+  padding:12px 12px 10px;
+  box-shadow:0 10px 26px rgba(12,89,78,.06);
+  overflow:hidden;
+}
+.helpCard::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(800px 220px at 10% 0%, rgba(15,122,102,.09), transparent 50%);
+  pointer-events:none;
+}
+.helpCard h4{
+  position:relative;
+  margin:0 0 8px;
+  color:var(--moe-green,#0f7a66);
+  font-family:"Cairo","Tajawal";
+  font-size:15px;
+  font-weight:900;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.helpCard h4::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:linear-gradient(90deg, rgba(15,122,102,.35), transparent);
+}
+.helpCard ul{
+  position:relative;
+  margin:0;
+  padding:0 18px;
+}
+.helpCard li{
+  margin:6px 0;
+  color:var(--ink,#123b37);
+  line-height:1.85;
+}
+.helpCard b{
+  color:var(--moe-dark,#0c594e);
+}
+.helpCard li::marker{
+  color:var(--moe-green,#0f7a66);
+  font-weight:900;
+}
+
+.helpChipRow{
+  position:relative;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+}
+.helpChip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 8px;
+  border-radius:999px;
+  border:1px solid var(--line,#cfe1dd);
+  background:#fff;
+  color:var(--moe-dark,#0c594e);
+  font-size:12px;
+  font-weight:800;
+  box-shadow:0 6px 16px rgba(0,0,0,.04);
+  white-space:nowrap;
+}
+.helpChip .dot{
+  width:9px;height:9px;border-radius:50%;
+  background:var(--moe-green,#0f7a66);
+  box-shadow:0 0 0 3px rgba(15,122,102,.12);
+}
+
+.helpTip{
+  position:relative;
+  margin-top:10px;
+  border:1px dashed var(--line,#cfe1dd);
+  background:linear-gradient(180deg, var(--moe-lite,#e8f4f1), #ffffff);
+  color:var(--moe-dark,#0c594e);
+  padding:10px 10px;
+  border-radius:14px;
+  font-weight:900;
+  font-size:12.8px;
+  line-height:1.8;
+}
+.helpTip b{color:var(--moe-dark,#0c594e)}
+.helpFoot{margin-top:10px}
+.helpPrivacy{
+  border:1px solid var(--border,#e6efec);
+  border-radius:16px;
+  padding:10px 12px;
+  background:
+    linear-gradient(180deg,#ffffff,#fbfdfc);
+  color:var(--ink,#123b37);
+  font-weight:800;
+  box-shadow:0 10px 26px rgba(12,89,78,.05);
+}
+.helpPrivacy b{color:var(--moe-green,#0f7a66)}
+</style>
+
+ <script>/* ====== HELP (مختصر + واضح + جذاب) ====== */
 function buildHelp(){
   const box = $('#helpBody');
   if(!box) return;
 
   box.innerHTML = `
     <div class="helpWrap">
+
       <div class="helpTop">
         <h3>دليل الاستخدام</h3>
         <p class="helpLead">استمارة توثيق زيارات المعلم (1/2) و(3 للدعم). الحفظ يتم محليًا على جهازك.</p>
+
+        <div class="helpChipRow">
+          <span class="helpChip"><span class="dot"></span> حفظ محلي</span>
+          <span class="helpChip"><span class="dot"></span> مؤشرات تلقائية</span>
+          <span class="helpChip"><span class="dot"></span> تقارير PDF</span>
+        </div>
       </div>
 
       <div class="helpGrid">
@@ -1800,6 +1945,7 @@ function buildHelp(){
       <div class="helpFoot">
         <div class="helpPrivacy"><b>خصوصية:</b> لا يتم إرسال أي بيانات—كل شيء محفوظ محليًا على جهازك.</div>
       </div>
+
     </div>
   `;
 }
