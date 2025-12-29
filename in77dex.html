@@ -1684,318 +1684,338 @@ $('#tId').addEventListener('input',()=>{
 /* حفظ الدعم عند التعديل اليدوي */
 $('#supportArea').addEventListener('input',dfn(()=>{ saveDraft(); },240));
 </script>
-<!-- ============ PART 19 / 20 ============ -->
+<!-- ============ PART 19 / 22 ============ -->
 <script>
 /* =========================================================
-   تفعيل الأزرار + الربط الخوارزمي (بدون تغيير الهوية/التصميم)
+   تفعيل الأزرار + التقارير + PDF (تصحيح نهائي)
    ========================================================= */
+(function(){
+  // تأكيد وجود العناصر قبل ربطها
+  const el = (id)=>document.getElementById(id);
 
-/* لوحات: فتح/إغلاق */
-function togglePanel(el, show=null){
-  if(!el) return;
-  const isShown = el.style.display && el.style.display!=='none';
-  const want = (show===null)? !isShown : !!show;
-  el.style.display = want ? 'block' : 'none';
-}
-$('#apClose').onclick=()=>togglePanel($('#approvedPanel'),false);
-$('#commsClose').onclick=()=>togglePanel($('#commsPanel'),false);
-$('#helpClose').onclick=()=>togglePanel($('#helpPanel'),false);
-$('#wizClose').onclick=()=>$('#importWizard').style.display='none';
-$('#wizCancel').onclick=()=>$('#importWizard').style.display='none';
-
-/* أسهم التمرير */
-$('#scrollUp').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
-$('#scrollDown').onclick=()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'});
-
-/* زر المنصة (قابل للتعديل مع حفظ) */
-const LS_HUB_URL = 'hub_url';
-function getHubUrl(){
-  return (localStorage.getItem(LS_PREFIX+LS_HUB_URL) || 'https://fhz545-hub.github.io/').trim();
-}
-$('#fabHub').onclick=()=>{
-  const url=getHubUrl();
-  window.open(url,'_blank','noopener');
-};
-$('#fabHub').addEventListener('contextmenu',(e)=>{
-  e.preventDefault();
-  const cur=getHubUrl();
-  const u=prompt('ضع رابط منصة التنظيم المدرسي:',cur);
-  if(u!==null){
-    try{ localStorage.setItem(LS_PREFIX+LS_HUB_URL, u.trim()); }catch{}
-    snack('تم حفظ رابط المنصة.');
+  // لوحات: فتح/إغلاق
+  function togglePanel(panel, show=null){
+    if(!panel) return;
+    const isShown = panel.style.display && panel.style.display !== 'none';
+    const want = (show===null) ? !isShown : !!show;
+    panel.style.display = want ? 'block' : 'none';
   }
-});
 
-/* زر الشرح */
-function buildHelp(){
-  const box=$('#helpBody');
-  if(!box) return;
-  const badges = [
-    'الأسماء (استيراد/قالب)','مؤشرات الزيارات','التعليم والتعلّم','الأدوات المساندة','الدعم التلقائي','اعتمد/مسح'
-  ];
-  box.innerHTML = `
-    <h3>طريقة الاستخدام</h3>
-    <p>املأ بيانات المعلم ثم قيّم البنود (ضعيف/متوسط/متميز). سيُحدّث المؤشر تلقائيًا، ويُولَّد دعم (٤ أسطر) قابل للتعديل.</p>
-    <div>${badges.map(b=>`<span class="help-badge">${b}</span>`).join('')}</div>
+  // أسهم التمرير
+  el('scrollUp')?.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  el('scrollDown')?.addEventListener('click',()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
 
-    <h3>الأسماء والاستيراد</h3>
-    <ul>
-      <li>زر <b>الأسماء</b> يفتح القائمة + البحث + الاستيراد.</li>
-      <li>الاستيراد يدعم Excel/CSV و PDF النصّي، مع مُعالج لتعيين الأعمدة عند الحاجة.</li>
-    </ul>
+  // زر المنصة (كما هو موجود عندك – لا علاقة له بالتقرير)
+  const LS_HUB_URL = 'hub_url';
+  const getHubUrl = ()=> (localStorage.getItem(LS_PREFIX+LS_HUB_URL) || 'https://fhz545-hub.github.io/').trim();
+  el('fabHub')?.addEventListener('click',()=>window.open(getHubUrl(),'_blank','noopener'));
 
-    <h3>الحافظة والاعتماد</h3>
-    <ul>
-      <li>زر <b>اعتمد</b> يحفظ زيارة اليوم كـ (معتمدة) داخل السجل.</li>
-      <li>زر <b>الحافظة</b> يعرض المعلمين الذين لديهم زيارات معتمدة لسهولة الرجوع.</li>
-    </ul>
-
-    <div class="help-note"><b>تنبيه:</b> الزيارة الثالثة مخصصة للدعم وتُتاح عند انخفاض مؤشر الزيارة الأولى أو الثانية.</div>
-    <div class="help-privacy"><b>خصوصية:</b> البيانات محفوظة محليًا على جهازك (IndexedDB/LocalStorage) ولا تُرسل لأي جهة.</div>
-  `;
-}
-$('#fabHelp').onclick=()=>{
-  buildHelp();
-  togglePanel($('#helpPanel'),true);
-};
-
-/* زر الحافظة */
-$('#btnVault').onclick=async ()=>{
-  await refreshApprovedPanel();
-  togglePanel($('#approvedPanel'),true);
-};
-async function refreshApprovedPanel(){
-  const list=(await dbAll())||[];
-  const picked=list.filter(t=>{
-    const v=t.visits||{};
-    return !!(v[1]?.finalized || v[2]?.finalized || v[3]?.finalized);
-  }).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ar'));
-
- /* … تابع PART 19 من هنا (بعد السطر الذي انتهى عنده) … */
-
-  const box=$('#approvedList');
-  if(!picked.length){ box.textContent='—'; return; }
-
-  box.innerHTML = picked.map(t=>{
-    const v=t.visits||{};
-    const badge1 = v[1]?.finalized ? '✅١' : '—١';
-    const badge2 = v[2]?.finalized ? '✅٢' : '—٢';
-    const badge3 = v[3]?.finalized ? '✅٣' : '—٣';
-    const tail = t.nationalId ? ` • ${t.nationalId}` : '';
-    return `
-      <span class="name-chip" data-k="${t.teacherId}" title="فتح السجل">
-        ${t.name||'—'} <span class="srcBadge">${badge1} ${badge2} ${badge3}</span>
-        <span style="opacity:.65;font-size:11px">${tail}</span>
-      </span>
+  // زر الشرح
+  function buildHelp(){
+    const box = el('helpBody'); if(!box) return;
+    const badges = ['الأسماء (استيراد/قالب)','مؤشرات الزيارات','التعليم والتعلّم','الأدوات المساندة','الدعم التلقائي','اعتمد/مسح','التقرير وPDF'];
+    box.innerHTML = `
+      <h3>طريقة الاستخدام</h3>
+      <p>املأ بيانات المعلم ثم قيّم البنود. سيتم تحديث المؤشرات تلقائيًا، ويُولَّد دعم (٤ أسطر) قابل للتعديل.</p>
+      <div>${badges.map(b=>`<span class="help-badge">${b}</span>`).join('')}</div>
+      <div class="help-note"><b>تنبيه:</b> الزيارة الثالثة مخصصة للدعم وتُتاح عند انخفاض مؤشر الزيارة الأولى أو الثانية.</div>
+      <div class="help-privacy"><b>خصوصية:</b> البيانات محفوظة محليًا على جهازك ولا تُرسل لأي جهة.</div>
     `;
-  }).join('');
+  }
+  el('fabHelp')?.addEventListener('click',()=>{
+    buildHelp();
+    togglePanel(el('helpPanel'), true);
+  });
+  el('helpClose')?.addEventListener('click',()=>togglePanel(el('helpPanel'),false));
 
-  $$('#approvedList .name-chip').forEach(ch=>{
-    ch.addEventListener('click', async ()=>{
-      const key = ch.getAttribute('data-k');
-      const rec = await dbGet(key); if(!rec) return;
-      $('#tName').value=rec.name||'';
-      $('#tId').value=rec.nationalId||'';
-      $('#tSpec').value=rec.spec||'';
-      $('#degree').value=rec.degree||'';
-      $('#class').value=rec.class||'';
-      $('#lesson').value=rec.lesson||'';
-      $('#mailTo').value=rec.email||($('#mailTo').value||'');
-      $('#waPhone').value=rec.phone||($('#waPhone').value||'');
-      fixedKey=rec.teacherId; loadedRecord=rec;
-      await renderFromRecord();
-      togglePanel($('#approvedPanel'),false);
-      snack('تم فتح سجل المعلم.');
+  // مراسلات
+  el('btnComms')?.addEventListener('click',()=>togglePanel(el('commsPanel'),true));
+  el('commsClose')?.addEventListener('click',()=>togglePanel(el('commsPanel'),false));
+
+  // تحميل افتراضيات مراسلات
+  (function loadCommsDefaults(){
+    const m=localStorage.getItem(LS_PREFIX+'mailTo')||'';
+    const p=localStorage.getItem(LS_PREFIX+'waPhone')||'';
+    if(el('mailTo') && m) el('mailTo').value=m;
+    if(el('waPhone') && p) el('waPhone').value=p;
+  })();
+
+  // ======== الحافظة ========
+  async function refreshApprovedPanel(){
+    const listEl=el('approvedList'); if(!listEl) return;
+    const list=(await dbAll())||[];
+    const picked=list.filter(t=>{
+      const v=t.visits||{};
+      return !!(v[1]?.finalized || v[2]?.finalized || v[3]?.finalized);
+    }).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ar'));
+
+    if(!picked.length){ listEl.textContent='—'; return; }
+
+    listEl.innerHTML = picked.map(t=>{
+      const v=t.visits||{};
+      const badge1 = v[1]?.finalized ? '✅١' : '—١';
+      const badge2 = v[2]?.finalized ? '✅٢' : '—٢';
+      const badge3 = v[3]?.finalized ? '✅٣' : '—٣';
+      const tail = t.nationalId ? ` • ${t.nationalId}` : '';
+      return `
+        <span class="name-chip" data-k="${t.teacherId}" title="فتح السجل">
+          ${t.name||'—'} <span class="srcBadge">${badge1} ${badge2} ${badge3}</span>
+          <span style="opacity:.65;font-size:11px">${tail}</span>
+        </span>
+      `;
+    }).join('');
+
+    [...listEl.querySelectorAll('.name-chip')].forEach(ch=>{
+      ch.addEventListener('click', async ()=>{
+        const key = ch.getAttribute('data-k');
+        const rec = await dbGet(key); if(!rec) return;
+        el('tName').value=rec.name||'';
+        el('tId').value=rec.nationalId||'';
+        el('tSpec').value=rec.spec||'';
+        el('degree').value=rec.degree||'';
+        el('class').value=rec.class||'';
+        el('lesson').value=rec.lesson||'';
+        if(el('mailTo')) el('mailTo').value=rec.email||el('mailTo').value||'';
+        if(el('waPhone')) el('waPhone').value=rec.phone||el('waPhone').value||'';
+        fixedKey=rec.teacherId; loadedRecord=rec;
+        await renderFromRecord();
+        togglePanel(el('approvedPanel'), false);
+        snack('تم فتح سجل المعلم.');
+      });
     });
+  }
+
+  el('btnVault')?.addEventListener('click', async ()=>{
+    await refreshApprovedPanel();
+    togglePanel(el('approvedPanel'), true);
   });
-}
+  el('apClose')?.addEventListener('click',()=>togglePanel(el('approvedPanel'),false));
 
-/* زر التقرير */
-$('#btnReport').onclick=()=>{
-  const el=$('#supportArea');
-  const det=ensureSupport(); // يضمن ٤ أسطر
-  const p=visitScore(activeVisit);
-  const name=($('#tName').value||'—').trim();
-  const spec=($('#tSpec').value||'—').trim();
-  const id=($('#tId').value||'').trim();
-  const date=$('#v'+activeVisit+'h').textContent||$('#todayHijri').textContent||'—';
+  // ======== التقارير (تقرير + PDF شامل) ========
+  const REPORT_HEADER_IMG = 'logo2.png';
 
-  const msg =
-`تقرير زيارة معلم (الزيارة ${activeVisit})
-الاسم: ${name}
-الهوية: ${id||'—'}
-التخصص: ${spec}
-التاريخ: ${date}
-مؤشر الزيارة: ${levelLabel(p)} (${p}%)
-
-الدعم المقدم (٤ أسطر):
-- ${det.map(x=>x.text).join('\n- ')}`;
-
-  // عرض سريع عبر نافذة
-  alert(msg);
-};
-
-/* زر المراسلات */
-$('#btnComms').onclick=()=>{
-  togglePanel($('#commsPanel'),true);
-};
-
-/* توليد رسالة مراسلات */
-function buildCommsText(){
-  const name=($('#tName').value||'—').trim();
-  const spec=($('#tSpec').value||'—').trim();
-  const date=$('#v'+activeVisit+'h').textContent||$('#todayHijri').textContent||'—';
-  const p=visitScore(activeVisit);
-  const det=ensureSupport();
-  const lines = det.map(x=>`• ${x.text}`).join('\n');
-
-  return `السلام عليكم ورحمة الله وبركاته،
-
-إشارة إلى زيارة الصف (الزيارة ${activeVisit}) للمعلم/ ${name} (${spec}) بتاريخ: ${date}.
-مؤشر الزيارة: ${levelLabel(p)} (${p}%).
-
-الدعم/التوصيات (٤ نقاط):
-${lines}
-
-مع خالص التقدير.`;
-}
-$('#btnMakeComms').onclick=()=>{
-  $('#commsTxt').value = buildCommsText();
-  snack('تم توليد نص المراسلة.');
-};
-$('#btnCopyComms').onclick=async ()=>{
-  const txt=($('#commsTxt').value||'').trim();
-  if(!txt){ snack('لا يوجد نص لنسخه.',false); return; }
-  try{
-    await navigator.clipboard.writeText(txt);
-    snack('تم النسخ للحافظة.');
-  }catch{
-    snack('تعذر النسخ (قيود المتصفح).',false);
+  function escapeHtml(s){
+    return String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   }
-};
-$('#btnOpenWA').onclick=()=>{
-  const phone=digitsOnly($('#waPhone').value||'');
-  const txt=encodeURIComponent(($('#commsTxt').value||buildCommsText()).trim());
-  if(!phone || phone.length<9){ snack('أدخل رقم واتساب بصيغة دولية صحيحة.',false); return; }
-  window.open(`https://wa.me/${phone}?text=${txt}`,'_blank','noopener');
-};
-$('#btnOpenMail').onclick=()=>{
-  const to=($('#mailTo').value||'').trim();
-  const subject=encodeURIComponent(`ملخص زيارة معلم (الزيارة ${activeVisit})`);
-  const body=encodeURIComponent(($('#commsTxt').value||buildCommsText()).trim());
-  if(!to){ snack('أدخل البريد الإلكتروني أولاً.',false); return; }
-  window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
-};
+  function visitName(v){ return v===1?'الأولى':(v===2?'الثانية':'الثالثة (دعم)'); }
 
-/* حفظ افتراضيات مراسلات */
-$('#editDefaults').onclick=()=>{
-  const m=($('#mailTo').value||'').trim();
-  const p=digitsOnly($('#waPhone').value||'').trim();
-  try{
-    if(m) localStorage.setItem(LS_PREFIX+'mailTo',m);
-    if(p) localStorage.setItem(LS_PREFIX+'waPhone',p);
-  }catch{}
-  snack('تم حفظ الإعدادات كافتراضي.');
-};
+  function openReport(){
+    const name=el('tName').value.trim()||'—';
+    const nid=el('tId').value||'—';
+    const spec=el('tSpec').value||'—';
+    const degree=el('degree').value||'—';
+    const lesson=el('lesson').value||'—';
+    const klass=el('class').value||'—';
+    const vLbl=activeVisit===1?'الأولى':activeVisit===2?'الثانية':'الثالثة (دعم)';
+    const p=visitScore(activeVisit), lvl=levelLabel(p);
+    const date=(el('v'+activeVisit+'h')?.textContent)||el('visitDateInline')?.value||'—';
+    const principal=(localStorage.getItem(LS_PREFIX+'principal')||el('pr1Name')?.textContent||'—').trim();
 
-/* استدعاء من السجل */
-$('#btnFetchFromDB').onclick=async ()=>{
-  const key=currentKey();
-  if(!key){ snack('أدخل الهوية أو الاسم أولاً.',false); return; }
-  const rec=await dbGet(key);
-  if(!rec){ snack('لا يوجد سجل محفوظ لهذا المعلم.',false); return; }
-  if(rec.email) $('#mailTo').value=rec.email;
-  if(rec.phone) $('#waPhone').value=rec.phone;
-  snack('تم الاستدعاء من السجل.');
-};
+    // learning
+    let learnHTML='';
+    fields.forEach((f,fi)=>{
+      let rows='';
+      f.items.forEach((pair,ii)=>{
+        const [label]=pair;
+        const v=store[activeVisit][fi][ii];
+        const lvlCell=v===3?'متميز':(v===2?'متوسط':(v===1?'ضعيف':'—'));
+        const ok=learnBank[f.name][label].ok, need=learnBank[f.name][label].need;
+        const okCell=(v===3?ok:(v===2?'تقدّم يحتاج تثبيتًا.':'—'));
+        const needCell=(v>0 && v<=2?need:'—');
+        rows+=`<tr><td>${escapeHtml(label)}</td><td><b>${lvlCell}</b></td><td>${escapeHtml(okCell)}</td><td>${escapeHtml(needCell)}</td></tr>`;
+      });
+      learnHTML+=`<tr><th colspan="4" class="ghead">${escapeHtml(f.name)}</th></tr>${rows}`;
+    });
 
-/* اعتماد الزيارة */
-function validateRequired(){
-  let ok=true;
-  $$('.req').forEach(el=>{
-    const v=(el.value||'').trim();
-    if(!v){ el.classList.add('input-error'); ok=false; }
-    else el.classList.remove('input-error');
+    // tools
+    const states=getToolsStateFromUI(), reasons=getToolReasonsFromUI();
+    let toolsHTML='';
+    toolsData.forEach((t,i)=>{
+      const s=states[i];
+      const lv=s===2?'مُفعل':(s===1?'إلى حد ما':(s===0?'غير مُفعل':'—'));
+      toolsHTML+=`<tr><td>${i+1}</td><td>${escapeHtml(t.title)}<div class="mini">${escapeHtml(t.proof||'')}</div></td><td><b>${escapeHtml(lv)}</b></td><td>${escapeHtml(reasons[i]||'—')}</td></tr>`;
+    });
+
+    // support
+    const det=ensureSupport();
+    const suppHTML=det.slice(0,4).map(o=>`<li>□ ${escapeHtml(o.text)} <span class="srcBadge">${escapeHtml(o.src||'')}</span></li>`).join('');
+
+    const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+      <title>تقرير زيارة — ${escapeHtml(name)}</title>
+      <style>
+        body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
+        .sheet{width:185mm;margin:0 auto;padding:10mm 10mm 12mm;box-sizing:border-box}
+        .hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:0 0 8px 0;border:1px solid #e6efec}
+        .hdrImg img{width:100%;height:auto;display:block}
+        h3{margin:8px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
+        .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px}
+        .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:700;font-size:11px}
+        table{width:100%;border-collapse:collapse;table-layout:fixed}
+        th,td{border:1px solid #cfe1dd;padding:6px;font-size:11px;vertical-align:top;word-wrap:break-word;text-align:center}
+        th{background:#0c594e;color:#fff}
+        .sub th{background:#f0f7f5;color:#0c594e}
+        .ghead{background:#0c594e;color:#fff}
+        .mini{font-size:10px;opacity:.9}
+        .tfoot-brand td{background:#e8f4f1;border-top:3px solid #0f7a66;padding:4px 6px}
+        ul{margin:6px 0 0 0;padding:0 18px}
+        li{margin:4px 0;text-align:right}
+        .srcBadge{display:inline-block;padding:.1rem .4rem;border-radius:8px;border:1px solid #0f7a66;color:#0f7a66;background:#f5fffb;margin-inline-start:6px;font-size:10px;font-weight:800}
+        .signs-inline{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap}
+        .signItem{border:1px solid #cfe1dd;padding:6px 10px;border-radius:10px;min-width:48%;text-align:center;font-size:11px}
+      </style></head><body>
+      <div class="sheet">
+        <div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>
+        <div class="badges">
+          <span class="badge">اسم المعلم: <b>${escapeHtml(name)}</b></span>
+          <span class="badge">الهوية: ${escapeHtml(nid)}</span>
+          <span class="badge">التخصص: ${escapeHtml(spec)}</span>
+          <span class="badge">المرتبة: ${escapeHtml(degree)}</span>
+          <span class="badge">عنوان الدرس: ${escapeHtml(lesson)}</span>
+          <span class="badge">الفصل: ${escapeHtml(klass)}</span>
+          <span class="badge">الزيارة: ${escapeHtml(vLbl)} — المستوى: <b>${escapeHtml(lvl)}</b></span>
+          <span class="badge">تاريخ الزيارة: ${escapeHtml(date)}</span>
+        </div>
+
+        <h3>عملية التعليم والتعلّم</h3>
+        <table>
+          <thead class="sub"><tr><th>العنصر</th><th>المستوى</th><th>جوانب التميّز</th><th>الاحتياجات</th></tr></thead>
+          <tbody>${learnHTML}</tbody>
+          <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
+        </table>
+
+        <h3>الأدوات المساندة</h3>
+        <table>
+          <thead class="sub"><tr><th>م</th><th>الأداة</th><th>التفعيل</th><th>أسباب عدم التفعيل</th></tr></thead>
+          <tbody>${toolsHTML}</tbody>
+          <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
+        </table>
+
+        <h3>الدعم المقدّم للمعلم</h3>
+        <ul>${suppHTML || '<li>—</li>'}</ul>
+
+        <div class="signs-inline">
+          <div class="signItem">اسم المعلم وتوقيعه: <b>${escapeHtml(name)}</b></div>
+          <div class="signItem">اسم المدير وتوقيعه: <b>${escapeHtml(principal)}</b></div>
+        </div>
+      </div>
+      </body></html>`;
+
+    const w=window.open('about:blank','_blank');
+    w.document.write(html);
+    w.document.close();
+  }
+
+  async function openAllPDF(){
+    const rec=await ensureRecord();
+    if(!rec){ snack('أدخل اسم المعلم أو الهوية أولاً.',false); return; }
+    await saveDraft();
+
+    const name=escapeHtml(el('tName').value.trim()||rec.name||'—');
+    const blocks = [1,2,3].map(v=>buildVisitBlockHTML(v, rec)).join('');
+
+    const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+      <title>تقرير شامل — ${name}</title>
+      <style>
+        body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
+        .sheet{width:190mm;margin:0 auto;padding:8mm 8mm 10mm;box-sizing:border-box}
+        .hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:0 0 8px 0;border:1px solid #e6efec}
+        .hdrImg img{width:100%;height:auto;display:block}
+        h2{margin:6px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
+        h3{margin:8px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
+        .visitBlock{border:1px solid #e6efec;border-radius:14px;padding:8px 8px 10px;margin:10px 0;break-inside:avoid}
+        .vHead{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px dashed #cfe1dd;padding-bottom:6px;margin-bottom:6px}
+        .vTitle{font-weight:900;color:#0c594e}
+        .vMeta{font-size:11px;color:#0c594e;font-weight:800}
+        .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 8px}
+        .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:700;font-size:11px}
+        table{width:100%;border-collapse:collapse;table-layout:fixed}
+        th,td{border:1px solid #cfe1dd;padding:6px;font-size:11px;vertical-align:top;word-wrap:break-word;text-align:center}
+        th{background:#0c594e;color:#fff}
+        .sub th{background:#f0f7f5;color:#0c594e}
+        .ghead{background:#0c594e;color:#fff}
+        .mini{font-size:10px;opacity:.9}
+        .tfoot-brand td{background:#e8f4f1;border-top:3px solid #0f7a66;padding:4px 6px}
+        ul{margin:6px 0 0 0;padding:0 18px}
+        li{margin:4px 0;text-align:right}
+        .srcBadge{display:inline-block;padding:.1rem .4rem;border-radius:8px;border:1px solid #0f7a66;color:#0f7a66;background:#f5fffb;margin-inline-start:6px;font-size:10px;font-weight:800}
+        .signs-inline{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap}
+        .signItem{border:1px solid #cfe1dd;padding:6px 10px;border-radius:10px;min-width:48%;text-align:center;font-size:11px}
+        .foot{margin:8px 0 0;text-align:center;font-size:11px;color:#0c594e}
+      </style></head><body>
+      <div class="sheet">
+        <div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>
+        <h2>تقرير شامل لزيارات المعلم</h2>
+        ${blocks}
+        <div class="foot">حرر في: ${escapeHtml(el('visitDateInline')?.value||hijriNow())}</div>
+      </div>
+      <script>window.onload=()=>setTimeout(()=>window.print(),250);<\/script>
+      </body></html>`;
+
+    const w=window.open('about:blank','_blank');
+    w.document.write(html);
+    w.document.close();
+  }
+
+  // ربط الأزرار
+  el('btnReport')?.addEventListener('click', openReport);
+  el('btnPDFAll')?.addEventListener('click', openAllPDF);
+
+  // ======== الاعتماد / المسح ========
+  el('btnFinalize')?.addEventListener('click', async ()=>{
+    const rec=await ensureRecord();
+    if(!rec){ snack('أدخل اسم المعلم أو الهوية أولاً.',false); return; }
+
+    // تحقق بسيط للحقول المطلوبة
+    const reqOk = (document.querySelectorAll('#boxInfo .req')||[]).length
+      ? [...document.querySelectorAll('#boxInfo .req')].every(i=>String(i.value||'').trim()!=='')
+      : true;
+    if(!reqOk){ snack('أكمل الحقول الأساسية (الاسم + التخصص).',false); return; }
+
+    await saveDraft();
+    rec.visits[activeVisit].finalized=true;
+    rec.visits[activeVisit].draft.date = el('v'+activeVisit+'h')?.textContent || el('visitDateInline')?.value || hijriNow();
+    await dbPut(rec);
+    snack(`تم اعتماد الزيارة ${visitName(activeVisit)} وحفظها في الحافظة.`,true);
+    await refreshLens();
   });
-  return ok;
-}
-$('#btnFinalize').onclick=async ()=>{
-  if(!validateRequired()){ snack('أكمل الحقول الإلزامية (اسم المعلم/التخصص).',false); return; }
-  await saveDraft();
-  const rec=await ensureRecord(); if(!rec) return;
-  rec.visits[activeVisit].finalized=true;
-  // تاريخ اعتماد إن لم يوجد
-  if(!rec.visits[activeVisit].draft.date){
-    const d=hijriNow();
-    rec.visits[activeVisit].draft.date=d;
-    $('#v'+activeVisit+'h').textContent=d; $('#sh'+activeVisit).textContent=d;
-  }
-  await dbPut(rec);
-  loadedRecord=rec;
-  snack(`تم اعتماد الزيارة ${activeVisit}.`);
-  await refreshLens();
-};
 
-/* مسح زيارة واحدة */
-$('#btnDeleteVisit').onclick=async ()=>{
-  const rec=await ensureRecord(); if(!rec) return;
-  if(!confirm(`هل تريد مسح بيانات الزيارة ${activeVisit} لهذا المعلم؟`)) return;
+  el('btnDeleteVisit')?.addEventListener('click', async ()=>{
+    const rec=await ensureRecord(); if(!rec){ snack('لا يوجد معلم محدد.',false); return; }
+    if(!confirm(`تأكيد مسح بيانات الزيارة ${visitName(activeVisit)} لهذا المعلم؟`)) return;
 
-  rec.visits[activeVisit] = {finalized:false, draft:zeroSupport()};
-  await dbPut(rec);
-  loadedRecord=rec;
+    store[activeVisit]=zeroMatrix();
+    rec.visits[activeVisit]={finalized:false,draft:zeroSupport()};
+    await dbPut(rec);
 
-  // إعادة تحميل للواجهة
-  store[activeVisit]=zeroMatrix();
-  buildLearning();
-  buildTools();
-  $('#supportArea').value='';
-  $('#v'+activeVisit+'h').textContent='—';
-  $('#sh'+activeVisit).textContent='—';
-  calcAll();
-  snack('تم مسح الزيارة.');
-  await refreshLens();
-};
+    buildLearning();
+    buildTools();
+    el('supportArea').value='';
+    el('v'+activeVisit+'h').textContent='—';
+    el('sh'+activeVisit).textContent='—';
+    el('visitDateInline').value='';
 
-/* مسح الجميع */
-$('#btnClearAll').onclick=async ()=>{
-  if(!confirm('هل تريد مسح جميع السجلات المحفوظة على هذا الجهاز؟')) return;
-  await dbClear();
-  loadedRecord=null; fixedKey=null;
-  // تفريغ الحقول
-  ['tName','tId','tSpec','degree','class','lesson'].forEach(id=>{ const el=$('#'+id); if(el) el.value=''; });
-  ['v1h','v2h','v3h','sh1','sh2','sh3'].forEach(id=>{ const el=$('#'+id); if(el) el.textContent='—'; });
-  store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()};
-  activeVisit=1;
-  buildLearning(); buildTools();
-  $('#supportArea').value='';
-  syncSignNames(); calcAll();
-  snack('تم مسح الجميع.');
-  await refreshLens();
-};
+    await saveDraft();
+    snack('تم مسح الزيارة المحددة.',true);
+  });
 
-/* PDF مجمّع (حل خفيف: طباعة الصفحة – المستخدم يختار حفظ PDF) */
-$('#btnPDFAll').onclick=async ()=>{
-  await saveDraft();
-  snack('لإنشاء PDF: استخدم طباعة المتصفح ثم اختر (حفظ كـ PDF).');
-  window.print();
-};
+  el('btnClearAll')?.addEventListener('click', async ()=>{
+    if(!confirm('سيتم مسح جميع السجلات المحفوظة (المعلمين والزيارات). هل أنت متأكد؟')) return;
 
-/* تحسين: تحديث الحافظة عند فتحها من زرها */
-$('#btnVault').addEventListener('click', async ()=>{ await refreshApprovedPanel(); });
+    await dbClear();
+    fixedKey=null; loadedRecord=null;
+    store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()};
+    activeVisit=1;
 
-/* إغلاق لوحات عند ESC */
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){
-    ['approvedPanel','commsPanel','helpPanel'].forEach(id=>togglePanel($('#'+id),false));
-    $('#importWizard').style.display='none';
-    lensMenu.style.display='none';
-  }
-});
+    ['tName','tId','tSpec','degree','class','lesson'].forEach(id=>el(id).value='');
+    ['v1h','v2h','v3h','sh1','sh2','sh3'].forEach(id=>el(id).textContent='—');
+    el('visitDateInline').value='';
+    el('supportArea').value='';
 
-/* تشغيل أولي */
-(async function bootMore(){
-  try{ await refreshLens(); }catch{}
+    buildLearning(); buildTools();
+    calcAll();
+    snack('تم مسح جميع البيانات المحفوظة.',true);
+  });
+
 })();
 </script>
 
