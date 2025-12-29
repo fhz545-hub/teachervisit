@@ -321,7 +321,12 @@ textarea.comms-preview{min-height:200px;border:1px dashed var(--line);border-rad
   margin-bottom:10px;
 }
 #boxInfo .infoRow.row2{
-  grid-template-columns:repeat(5,minmax(160px,1fr)); /* 5 حقول فقط */
+  grid-template-columns:
+    minmax(260px, 1.55fr)  /* اسم المعلم (أكبر) */
+    minmax(140px, 0.70fr)  /* رقم الهوية (أصغر) */
+    minmax(170px, 0.85fr)  /* التخصص/المادة (أصغر) */
+    minmax(150px, 0.75fr)  /* المرتبة */
+    minmax(260px, 1.45fr); /* الفصل + عنوان الدرس */
 }
 
 #boxInfo .lbl{
