@@ -1684,767 +1684,574 @@ $('#tId').addEventListener('input',()=>{
 /* حفظ الدعم عند التعديل اليدوي */
 $('#supportArea').addEventListener('input',dfn(()=>{ saveDraft(); },240));
 </script>
-<!-- ============ PART 19 / 20 (FULL FIX — Algorithmic Binding) ============ -->
+<!-- ============ PART 19 / 20 (REWIRED + FIXED) ============ -->
 <script>
+/* =========================================================
+   PART 19 (FINAL) — ربط خوارزمي صحيح للأزرار:
+   - تقرير الزيارة الحالية (Popup + Print)
+   - تقرير شامل (Popup + Print) + حل "صفحة البنر فقط"
+   - المراسلات: توليد/نسخ/واتساب/إيميل
+   - تحديث لوحة الشرح (Help) بأسلوب مهني تربوي
+   ========================================================= */
+
 (function(){
   "use strict";
 
-  /* =========
-     أدوات آمنة (بدون تعارض)
-     ========= */
-  const el = (id)=>document.getElementById(id);
-  const esc = (s)=>String(s??'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
-  const toast = (msg, ok=true)=>{ try{ if(typeof window.snack==="function"){ window.snack(msg, ok); return; } }catch{} if(!ok) alert(msg); else console.log(msg); };
-  const debounce = (fn, ms=180)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
+  /* ====== Safe helpers (بدون كسر دوالك الحالية) ====== */
+  const R19 = {};
+  const R$ = (id)=>document.getElementById(id);
 
-  async function copyText(txt){
-    try{ await navigator.clipboard.writeText(txt); }
-    catch{
-      const ta=document.createElement('textarea');
-      ta.value=txt; ta.style.position='fixed'; ta.style.left='-9999px';
-      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+  function R19_escapeHtml(s){
+    return String(s ?? '').replace(/[&<>"']/g, m => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
+  }
+
+  async function R19_copy(text){
+    const t = String(text||'');
+    if(!t.trim()) return;
+    if(navigator.clipboard?.writeText){
+      try{ await navigator.clipboard.writeText(t); return; }catch{}
+    }
+    const ta=document.createElement('textarea');
+    ta.value=t; ta.style.position='fixed'; ta.style.left='-9999px';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch{}
+    ta.remove();
+  }
+
+  function R19_snack(msg, ok=true){
+    // استخدم Snackbar الأصلي إن وُجد
+    try{
+      if(typeof window.snack === 'function'){ window.snack(msg, ok); return; }
+    }catch{}
+    // fallback خفيف
+    if(!ok) alert(msg);
+    else console.log(msg);
+  }
+
+  /* ====== قراءة بيانات الصفحة (خوارزميًا) ====== */
+  function R19_getTop(){
+    const edu = (R$('h-dir')?.value || 'الإدارة العامة للتعليم بالمنطقة الشرقية').trim();
+    const sch = (R$('h-school')?.value || 'ثانوية اليعقوبي بالخبر').trim();
+    return { edu, sch };
+  }
+  function R19_getNames(){
+    const teacher = (R$('tName')?.value || '').trim();
+    const nid     = (R$('tId')?.value || '').trim();
+    const spec    = (R$('tSpec')?.value || '').trim();
+    const degree  = (R$('degree')?.value || '').trim();
+    const klass   = (R$('class')?.value || '').trim();
+    const lesson  = (R$('lesson')?.value || '').trim();
+    const principal =
+      (localStorage.getItem((window.LS_PREFIX||'yaqfb_')+'principal') || 'فهد حامد الزهراني').trim();
+    return { teacher, nid, spec, degree, klass, lesson, principal };
+  }
+
+  function R19_hijriDate(){
+    // استخدم دالتك الحالية إن وجدت
+    try{
+      if(typeof window.hijriNow === 'function') return window.hijriNow();
+    }catch{}
+    try{
+      return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',{day:'numeric',month:'long',year:'numeric'}).format(new Date());
+    }catch{
+      return new Date().toLocaleDateString('ar-SA');
     }
   }
 
-  function getHijri(){
-    return (el('visitDateInline')?.value || el('todayHijri')?.textContent || (typeof window.hijriNow==="function"?window.hijriNow():"—") || "—").trim();
-  }
-  function getEdu(){ return (el('h-dir')?.value || 'الإدارة العامة للتعليم بالمنطقة الشرقية').trim(); }
-  function getSchool(){ return (el('h-school')?.value || 'ثانوية اليعقوبي بالخبر').trim(); }
-  function getPrincipal(){
-    try{ return (localStorage.getItem('yaqfb_principal') || el('pr1Name')?.textContent || 'فهد حامد الزهراني').trim(); }
-    catch{ return (el('pr1Name')?.textContent || 'فهد حامد الزهراني').trim(); }
+  function R19_visitName(v){
+    return (v===1?'الأولى':(v===2?'الثانية':(v===3?'الثالثة (دعم)':'#'+v)));
   }
 
-  function getTeacherFromUI(){
-    const name=(el('tName')?.value||'').trim();
-    const nid =(el('tId')?.value||'').trim();
-    if(!name && !nid) return null;
-    return {
-      name: name||'—',
-      nid:  nid||'—',
-      spec:(el('tSpec')?.value||'—').trim(),
-      degree:(el('degree')?.value||'—').trim(),
-      klass:(el('class')?.value||'—').trim(),
-      lesson:(el('lesson')?.value||'—').trim()
-    };
-  }
-
-  const visitLabel = (v)=> v===1?'الأولى':(v===2?'الثانية':'الثالثة (دعم)');
-
-  /* =========
-     قراءة بيانات الزيارة خوارزميًا من السجل
-     - يعتمد على loadedRecord + visits[v].draft
-     - fallback: من واجهة المستخدم إن لم يوجد سجل
-     ========= */
-  function safeClone(o){ try{return JSON.parse(JSON.stringify(o));}catch{return o;} }
-
-  function getDraftForVisit(v){
-    // 1) من السجل إن وجد
+  function R19_levelLabel(p){
+    // استخدم دالتك الحالية إن وجدت
     try{
-      if(window.loadedRecord && window.loadedRecord.visits && window.loadedRecord.visits[v] && window.loadedRecord.visits[v].draft){
-        return window.loadedRecord.visits[v].draft;
-      }
+      if(typeof window.levelLabel === 'function') return window.levelLabel(p);
     }catch{}
-    // 2) fallback: من الشاشة (الزيارة الحالية فقط)
-    const fallback = {
-      ratings: null,
-      tools: null,
-      reasons: null,
-      supportDetailed: null,
-      support: null,
-      date: (el('v'+v+'h')?.textContent || getHijri()).trim()
-    };
-    try{
-      if(typeof window.clone==="function" && window.store){
-        fallback.ratings = window.clone(window.store[v] || window.store[window.activeVisit] || []);
-      }
-    }catch{}
-    try{ if(typeof window.getToolsStateFromUI==="function") fallback.tools = window.getToolsStateFromUI(); }catch{}
-    try{ if(typeof window.getToolReasonsFromUI==="function") fallback.reasons = window.getToolReasonsFromUI(); }catch{}
-    try{
-      if(typeof window.ensureSupport==="function"){
-        const det = window.ensureSupport() || [];
-        fallback.supportDetailed = det;
-        fallback.support = det.map(x=>x.text);
-      }
-    }catch{}
-    return fallback;
-  }
-
-  function scoreForVisit(v){
-    try{ if(typeof window.visitScore==="function") return Number(window.visitScore(v)||0); }catch{}
-    return 0;
-  }
-  function levelText(p){
     if(p>=80) return 'متميز';
     if(p>=50) return 'متوسط';
-    return 'ضعيف';
+    if(p>0) return 'ضعيف';
+    return '—';
   }
 
-  /* =========
-     توليد “تحليل فجوات” من ratings (أضعف مجالين)
-     ========= */
-  function analyzeWeakDomains(ratingsMatrix){
+  function R19_visitScore(v){
+    // استخدم محسّبك الحالي
     try{
-      if(!ratingsMatrix || !Array.isArray(ratingsMatrix) || !window.fields) return [];
-      const arr = window.fields.map((f,fi)=>{
-        const row = (ratingsMatrix[fi]||[]).filter(x=>x>0);
-        const avg = row.length ? (row.reduce((a,b)=>a+b,0)/row.length) : 0;
-        return { dom:f.name, fi, avg };
-      });
-      arr.sort((a,b)=>a.avg-b.avg);
-      return arr.slice(0,2).filter(x=>x.avg>0 || true);
-    }catch{ return []; }
-  }
-
-  /* =========
-     HTML Styles للتقرير/الـPDF (حل البنر فقط + وضوح + ترويسة)
-     ========= */
-  function reportStyles(){
-    return `
-<style>
-@page{size:A4;margin:10mm;}
-*{box-sizing:border-box}
-body{margin:0;background:#fff;color:#123b37;font-family:"Tajawal",system-ui}
-.toolbar{position:sticky;top:0;z-index:50;display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:10px 12px;background:#fff;border-bottom:1px solid #e6efec}
-.btn{border:1px solid #cfe1dd;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer}
-.sheet{max-width:190mm;margin:0 auto;padding:0 0 12px}
-.hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:10px 0;border:1px solid #e6efec}
-.hdrImg img{width:100%;height:auto;display:block}
-.headBox{border:1px solid #e6efec;border-radius:16px;background:#fbfdfc;padding:10px 12px;margin:0 0 10px}
-.row{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
-.cell{flex:1;min-width:240px;border:1px solid #cfe1dd;background:#e8f4f1;border-radius:12px;padding:8px 10px;font-weight:900}
-.cell b{font-weight:900}
-h1,h2{margin:6px 0 10px;color:#0f7a66;font-family:"Cairo";text-align:center}
-.badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 10px}
-.badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:900;font-size:11px}
-.block{border:1px solid #e6efec;border-radius:14px;padding:10px;margin:10px 0;break-inside:auto;page-break-inside:auto}
-.blockHead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-weight:900;color:#0c594e;border-bottom:1px dashed #cfe1dd;padding-bottom:6px;margin-bottom:8px}
-.small{font-size:11px;color:#0c594e;font-weight:900}
-.tbl{width:100%;border-collapse:collapse;table-layout:fixed}
-.tbl th,.tbl td{border:1px solid #cfe1dd;padding:6px;font-size:11px;text-align:center;vertical-align:top;word-wrap:break-word}
-.tbl th{background:#0c594e;color:#fff}
-.tag{display:inline-block;padding:.1rem .45rem;border-radius:8px;border:1px solid #0f7a66;color:#0f7a66;background:#f5fffb;font-size:10px;font-weight:900;margin-inline-start:6px}
-ul{margin:6px 0 0 0;padding:0 18px}
-li{margin:4px 0;text-align:right}
-.foot{margin:10px 0 0;text-align:center;font-size:11px;color:#0c594e;font-weight:900}
-@media print{ .toolbar{display:none!important} .sheet{max-width:unset;margin:0} }
-</style>`;
-  }
-
-  function headerHTML(teacher){
-    const edu = esc(getEdu());
-    const sch = esc(getSchool());
-    const pr  = esc(getPrincipal());
-    const dt  = esc(getHijri());
-    const hdrSrc = el('hdrImg')?.getAttribute('src') || '';
-    const hdrImg = hdrSrc ? `<div class="hdrImg"><img src="${esc(hdrSrc)}" alt=""></div>` : '';
-    return `
-      ${hdrImg}
-      <div class="headBox">
-        <div class="row">
-          <div class="cell">
-            <b>${edu}</b> — <b>${sch}</b><br>
-            اسم المعلم: <b>${esc(teacher.name)}</b>
-          </div>
-          <div class="cell" style="text-align:left">
-            مدير المدرسة: <b>${pr}</b><br>
-            التاريخ: <b>${dt}</b>
-          </div>
-        </div>
-      </div>`;
-  }
-
-  function teacherBadges(teacher, p, lvl){
-    return `
-      <div class="badges">
-        <span class="badge">الهوية: ${esc(teacher.nid)}</span>
-        <span class="badge">التخصص: ${esc(teacher.spec)}</span>
-        <span class="badge">المرتبة: ${esc(teacher.degree)}</span>
-        <span class="badge">الفصل: ${esc(teacher.klass)}</span>
-        <span class="badge">عنوان الدرس: ${esc(teacher.lesson)}</span>
-        <span class="badge">النتيجة: <b>${esc(lvl)}</b> (${Number(p)||0}%)</span>
-      </div>`;
-  }
-
-  function ratingsTableHTML(draft){
-    try{
-      if(!draft?.ratings || !window.fields) return `<div class="small">لا توجد بيانات تقييم مفصلة لهذه الزيارة.</div>`;
-      const m = draft.ratings;
-      let rows = '';
-      window.fields.forEach((f,fi)=>{
-        (f.items||[]).forEach((pair,ii)=>{
-          const item = pair[0];
-          const v = (m[fi] && typeof m[fi][ii]!=='undefined') ? Number(m[fi][ii]) : 0;
-          if(!v) return;
-          const bank = (window.learnBank && window.learnBank[f.name] && window.learnBank[f.name][item]) ? window.learnBank[f.name][item] : null;
-          const ok = (v===3 && bank)? bank.ok : (v===2 ? 'تقدّم ملحوظ يحتاج تثبيتًا.' : '—');
-          const need = (v<=2 && bank)? bank.need : '—';
-          rows += `<tr>
-            <td>${esc(f.name)}</td>
-            <td>${esc(item)}</td>
-            <td>${v===3?'متميز':(v===2?'متوسط':'ضعيف')}</td>
-            <td>${esc(ok)}</td>
-            <td>${esc(need)}</td>
-          </tr>`;
-        });
-      });
-      if(!rows) return `<div class="small">لم يتم اختيار مستويات أداء داخل عناصر التعليم والتعلم.</div>`;
-      return `
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>المجال</th>
-              <th>العنصر</th>
-              <th>المستوى</th>
-              <th>جوانب التميّز</th>
-              <th>احتياجات التنمية المهنية</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>`;
-    }catch{
-      return `<div class="small">تعذر بناء جدول التقييم.</div>`;
-    }
-  }
-
-  function toolsTableHTML(draft){
-    try{
-      const states = Array.isArray(draft?.tools) ? draft.tools : [];
-      const reasons = Array.isArray(draft?.reasons) ? draft.reasons : [];
-      if(!window.toolsData || !window.toolsData.length) return `<div class="small">لا توجد أدوات مساندة معرفة.</div>`;
-
-      let rows='';
-      window.toolsData.forEach((t,i)=>{
-        const s = (typeof states[i]!=='undefined' && states[i]!=null) ? Number(states[i]) : null; // 0/1/2
-        const label = (s===2?'مُفعل':(s===1?'إلى حد ما':(s===0?'غير مُفعل':'غير محدد')));
-        const why = (reasons[i]||'').trim();
-        rows += `<tr>
-          <td>${i+1}</td>
-          <td>${esc(t.title||'—')}</td>
-          <td>${esc(label)}</td>
-          <td>${esc(why || (s===2?'—':''))}</td>
-        </tr>`;
-      });
-
-      return `
-        <table class="tbl">
-          <thead><tr><th>م</th><th>الأداة</th><th>الحالة</th><th>أسباب عدم التفعيل/الجزئي</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>`;
-    }catch{
-      return `<div class="small">تعذر بناء جدول الأدوات.</div>`;
-    }
-  }
-
-  function supportHTML(draft){
-    try{
-      const det = Array.isArray(draft?.supportDetailed) ? draft.supportDetailed : [];
-      const lines = det.length ? det.map(x=>`<li>□ ${esc(x.text)} ${x.src?`<span class="tag">${esc(x.src)}</span>`:''}</li>`).join('')
-                              : (Array.isArray(draft?.support) ? draft.support : []).map(t=>`<li>□ ${esc(t)}</li>`).join('');
-      return `<ul>${lines || '<li>—</li>'}</ul>`;
-    }catch{
-      return `<ul><li>—</li></ul>`;
-    }
-  }
-
-  function weakSummaryHTML(draft){
-    const weak = analyzeWeakDomains(draft?.ratings);
-    if(!weak.length) return '';
-    const a = weak.map(w=>`<span class="badge">أولوية دعم: ${esc(w.dom)}</span>`).join('');
-    return `<div class="badges">${a}</div>`;
-  }
-
-  function buildVisitBlock(v, teacher, draft){
-    const p = scoreForVisit(v);
-    const lvl = levelText(p);
-    const dt = (draft?.date || el('v'+v+'h')?.textContent || getHijri()).trim() || '—';
-
-    return `
-      <div class="block">
-        <div class="blockHead">
-          <div>الزيارة ${esc(visitLabel(v))}</div>
-          <div class="small">التاريخ: ${esc(dt)} — النتيجة: <b>${esc(lvl)}</b> (${Number(p)||0}%)</div>
-        </div>
-
-        ${teacherBadges(teacher, p, lvl)}
-        ${weakSummaryHTML(draft)}
-
-        <div style="margin-top:8px;font-weight:900;color:#0c594e;text-align:center">التعليم والتعلّم</div>
-        ${ratingsTableHTML(draft)}
-
-        <div style="margin-top:10px;font-weight:900;color:#0c594e;text-align:center">الأدوات المساندة</div>
-        ${toolsTableHTML(draft)}
-
-        <div style="margin-top:10px;font-weight:900;color:#0c594e;text-align:center">الدعم المقدّم للمعلم</div>
-        ${supportHTML(draft)}
-      </div>`;
-  }
-
-  function openPopup(html, title){
-    const w = window.open('about:blank','_blank');
-    if(!w){ toast('المتصفح منع النافذة المنبثقة. اسمح بالنوافذ المنبثقة.', false); return; }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    try{ w.document.title = title||w.document.title; }catch{}
-  }
-
-  async function openReportSingle(){
-    // احفظ آخر تغييرات قبل التقرير
-    try{ if(typeof window.saveDraft==="function") await window.saveDraft(); }catch{}
-
-    const teacher = getTeacherFromUI();
-    if(!teacher){ toast('أدخل اسم المعلم أو رقم الهوية أولاً.', false); return; }
-
-    const v = Number(window.activeVisit||1);
-    const draft = getDraftForVisit(v);
-
-    const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-      <title>تقرير زيارة — ${esc(teacher.name)}</title>
-      ${reportStyles()}
-    </head><body>
-      <div class="toolbar">
-        <button class="btn" onclick="window.print()">طباعة</button>
-        <button class="btn" onclick="window.close()">إغلاق</button>
-      </div>
-      <div class="sheet">
-        ${headerHTML(teacher)}
-        <h2>تقرير زيارة صفية — الزيارة ${esc(visitLabel(v))}</h2>
-        ${buildVisitBlock(v, teacher, draft)}
-        <div class="foot">تم إنشاء التقرير من بيانات الاستمارة (خوارزميًا).</div>
-      </div>
-    </body></html>`;
-    openPopup(html, `تقرير زيارة — ${teacher.name}`);
-  }
-
-  async function openReportAll(){
-    // احفظ آخر تغييرات قبل التقرير الشامل
-    try{ if(typeof window.saveDraft==="function") await window.saveDraft(); }catch{}
-
-    const teacher = getTeacherFromUI();
-    if(!teacher){ toast('أدخل اسم المعلم أو رقم الهوية أولاً.', false); return; }
-
-    const d1=getDraftForVisit(1), d2=getDraftForVisit(2), d3=getDraftForVisit(3);
-
-    const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-      <title>تقرير شامل — ${esc(teacher.name)}</title>
-      ${reportStyles()}
-    </head><body>
-      <div class="toolbar">
-        <button class="btn" onclick="window.print()">طباعة</button>
-        <button class="btn" onclick="window.close()">إغلاق</button>
-      </div>
-      <div class="sheet">
-        ${headerHTML(teacher)}
-        <h1>تقرير شامل لزيارات المعلم</h1>
-        ${buildVisitBlock(1, teacher, d1)}
-        ${buildVisitBlock(2, teacher, d2)}
-        ${buildVisitBlock(3, teacher, d3)}
-        <div class="foot">حرر في: ${esc(getHijri())} — مدير المدرسة: ${esc(getPrincipal())}</div>
-      </div>
-    </body></html>`;
-    openPopup(html, `تقرير شامل — ${teacher.name}`);
-  }
-
-  /* =========
-     المراسلات (خوارزمياً)
-     ========= */
-  function buildCommsMessage(){
-    const teacher = getTeacherFromUI();
-    if(!teacher) return '';
-
-    const v = Number(window.activeVisit||1);
-    const draft = getDraftForVisit(v);
-    const p = scoreForVisit(v);
-    const lvl = levelText(p);
-    const dt = (draft?.date || el('v'+v+'h')?.textContent || getHijri()).trim();
-
-    const weak = analyzeWeakDomains(draft?.ratings).map(x=>`- ${x.dom}`).join('\n') || '- —';
-
-    const tools = (function(){
-      try{
-        const states = Array.isArray(draft?.tools)?draft.tools:[];
-        const reasons= Array.isArray(draft?.reasons)?draft.reasons:[];
-        if(!window.toolsData) return '—';
-        const bad=[];
-        window.toolsData.forEach((t,i)=>{
-          const s = (typeof states[i]!=='undefined' && states[i]!=null) ? Number(states[i]) : null;
-          if(s===0 || s===1){
-            const st = (s===0?'غير مُفعل':'إلى حد ما');
-            const rs = (reasons[i]||'').trim();
-            bad.push(`- ${t.title} (${st})${rs?` — السبب: ${rs}`:''}`);
-          }
-        });
-        return bad.length?bad.join('\n'):'—';
-      }catch{ return '—'; }
-    })();
-
-    const support = (function(){
-      const det = Array.isArray(draft?.supportDetailed)?draft.supportDetailed:[];
-      const lines = det.length? det.map(x=>`- ${x.text}`).join('\n')
-                              : (Array.isArray(draft?.support)?draft.support:[]).map(x=>`- ${x}`).join('\n');
-      return lines || '- —';
-    })();
-
-    return [
-      getEdu(),
-      getSchool(),
-      `التاريخ: ${dt || getHijri()}`,
-      `المعلم: ${teacher.name} — الهوية: ${teacher.nid}`,
-      `التخصص: ${teacher.spec} — المرتبة: ${teacher.degree}`,
-      `الفصل: ${teacher.klass} — الدرس: ${teacher.lesson}`,
-      `نتيجة الزيارة (${visitLabel(v)}): ${lvl} (${Number(p)||0}%)`,
-      ``,
-      `أولويات التطوير (وفق التقييم):`,
-      `${weak}`,
-      ``,
-      `أدوات تحتاج تفعيل/تحسين:`,
-      `${tools}`,
-      ``,
-      `الدعم المقترح للمعلم:`,
-      `${support}`,
-      ``,
-      `مدير المدرسة: ${getPrincipal()}`
-    ].join('\n');
-  }
-
-  function openCommsPanel(){
-    const panel = el('commsPanel');
-    if(!panel){ toast('لوحة المراسلات غير موجودة.', false); return; }
-    panel.style.display='block';
-    makeComms();
-  }
-  function closeCommsPanel(){ const panel=el('commsPanel'); if(panel) panel.style.display='none'; }
-
-  function makeComms(){
-    const txt = buildCommsMessage();
-    if(!txt){ toast('أدخل اسم المعلم أو رقم الهوية أولاً.', false); return; }
-    const box = el('commsTxt');
-    if(box) box.value = txt;
-    toast('تم توليد الرسالة.');
-  }
-  async function copyComms(){
-    const box=el('commsTxt');
-    const txt=(box?.value||'').trim();
-    if(!txt){ toast('لا توجد رسالة للنسخ.', false); return; }
-    await copyText(txt);
-    toast('تم النسخ.');
-  }
-  function openWA(){
-    const box=el('commsTxt');
-    const txt=(box?.value||buildCommsMessage()||'').trim();
-    if(!txt){ toast('لا توجد رسالة.', false); return; }
-    const phone=(el('waPhone')?.value||'').trim();
-    const url = phone ? `https://wa.me/${encodeURIComponent(phone)}?text=${encodeURIComponent(txt)}`
-                      : `https://wa.me/?text=${encodeURIComponent(txt)}`;
-    window.open(url,'_blank','noopener');
-  }
-  function openMail(){
-    const box=el('commsTxt');
-    const txt=(box?.value||buildCommsMessage()||'').trim();
-    if(!txt){ toast('لا توجد رسالة.', false); return; }
-    const mail=(el('mailTo')?.value||'').trim();
-    const t = getTeacherFromUI() || {name:'—'};
-    const subject = `تقرير زيارة — ${t.name}`;
-    window.location.href = `mailto:${encodeURIComponent(mail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(txt)}`;
-  }
-
-  // حفظ الافتراضيات (بريد/واتساب) + تحديث السجل الحالي إن وجد
-  function saveCommsDefaults(){
-    const mail=(el('mailTo')?.value||'').trim();
-    const wa=(el('waPhone')?.value||'').trim();
-    try{
-      localStorage.setItem('yaqfb_mailTo', mail);
-      localStorage.setItem('yaqfb_waPhone', wa);
+      if(typeof window.visitScore === 'function') return window.visitScore(v);
     }catch{}
-    // تحديث السجل الحالي إن كان موجوداً
-    (async()=>{
-      try{
-        if(typeof window.ensureRecord==="function"){
-          const rec=await window.ensureRecord();
-          if(rec){
-            rec.email = mail || rec.email;
-            rec.phone = wa || rec.phone;
-            if(typeof window.dbPut==="function") await window.dbPut(rec);
-            window.loadedRecord = rec;
-          }
+    return 0;
+  }
+
+  function R19_getVisitDate(v){
+    const a = (R$('v'+v+'h')?.textContent || '').trim();
+    const b = (R$('visitDateInline')?.value || '').trim();
+    return (a && a !== '—') ? a : (b || R19_hijriDate());
+  }
+
+  /* ====== تلخيص "عملية التعليم والتعلّم" من المصفوفة store/fields ====== */
+  function R19_buildLearningSummaryHTML(v){
+    const has = (window.fields && window.store && window.store[v]);
+    if(!has) return `<div class="note">— لم يتم العثور على بيانات التقييم (التعليم والتعلّم).</div>`;
+
+    const out = [];
+    window.fields.forEach((domain, fi)=>{
+      const rows = [];
+      (domain.items||[]).forEach((pair, ii)=>{
+        const title = pair[0];
+        const val = (window.store[v]?.[fi]?.[ii]) || 0;
+        if(val>0){
+          const lbl = (val===3?'متميز':(val===2?'متوسط':'ضعيف'));
+          rows.push(`<li><b>${R19_escapeHtml(title)}</b> — <span class="pill">${lbl}</span></li>`);
         }
-      }catch{}
-    })();
-    toast('تم حفظ بيانات المراسلات كافتراضي.');
-  }
-
-  // استدعاء من السجل الحالي (إن وُجد)
-  async function fetchCommsFromDB(){
-    try{
-      if(typeof window.ensureRecord!=="function"){ toast('تعذر استدعاء السجل.', false); return; }
-      const rec=await window.ensureRecord();
-      if(!rec){ toast('أدخل هوية/اسم ثم احفظ مسودة.', false); return; }
-      if(rec.email) el('mailTo').value = rec.email;
-      if(rec.phone) el('waPhone').value = rec.phone;
-      toast('تم الاستدعاء من السجل.');
-    }catch{
-      toast('تعذر الاستدعاء من السجل.', false);
-    }
-  }
-
-  /* =========
-     الحافظة + اعتماد/مسح
-     ========= */
-  function openVault(){
-    const p = el('approvedPanel');
-    if(!p) return;
-    p.style.display = (p.style.display==='block') ? 'none' : 'block';
-    refreshVault();
-  }
-  function closeVault(){
-    const p = el('approvedPanel');
-    if(p) p.style.display='none';
-  }
-
-  async function refreshVault(){
-    const listEl = el('approvedList');
-    if(!listEl) return;
-    listEl.innerHTML = '...';
-
-    try{
-      if(typeof window.dbAll!=="function"){ listEl.innerHTML='تعذر قراءة السجلات.'; return; }
-      const all = await window.dbAll();
-      if(!all || !all.length){ listEl.innerHTML='لا توجد سجلات بعد.'; return; }
-
-      // اعرض من لديه أي زيارة معتمدة
-      const finals = all.filter(r=>{
-        const v=r.visits||{};
-        return !!(v[1]?.finalized || v[2]?.finalized || v[3]?.finalized);
       });
-
-      if(!finals.length){ listEl.innerHTML='لا يوجد اعتماد بعد.'; return; }
-
-      listEl.innerHTML = finals.map(r=>{
-        const v=r.visits||{};
-        const c=(v[1]?.finalized?1:0)+(v[2]?.finalized?1:0)+(v[3]?.finalized?1:0);
-        const dot=c===0?'🟥':(c===1?'🟨':'🟩');
-        const tail=r.nationalId?` (${r.nationalId})`:'';
-        return `<span class="name-chip" data-key="${esc(r.teacherId)}">${dot} ${esc(r.name||'—')}${esc(tail)}</span>`;
-      }).join('');
-
-      // click to load
-      listEl.querySelectorAll('[data-key]').forEach(ch=>{
-        ch.addEventListener('click', async ()=>{
-          const key=ch.getAttribute('data-key');
-          try{
-            const rec = await window.dbGet(key);
-            if(!rec) return;
-            el('tName').value = rec.name||'';
-            el('tId').value = rec.nationalId||'';
-            el('tSpec').value = rec.spec||'';
-            el('degree').value = rec.degree||'';
-            el('class').value = rec.class||'';
-            el('lesson').value = rec.lesson||'';
-            if(rec.email) el('mailTo').value = rec.email;
-            if(rec.phone) el('waPhone').value = rec.phone;
-            window.fixedKey = rec.teacherId;
-            window.loadedRecord = rec;
-            if(typeof window.renderFromRecord==="function") await window.renderFromRecord();
-            toast('تم فتح السجل من الحافظة.');
-            closeVault();
-          }catch{}
-        });
-      });
-    }catch{
-      listEl.innerHTML='تعذر تحديث الحافظة.';
-    }
-  }
-
-  async function finalizeVisit(){
-    try{
-      if(typeof window.saveDraft==="function") await window.saveDraft();
-      if(typeof window.ensureRecord!=="function"){ toast('تعذر الاعتماد.', false); return; }
-      const rec = await window.ensureRecord();
-      if(!rec){ toast('أدخل بيانات المعلم أولاً.', false); return; }
-      const v = Number(window.activeVisit||1);
-      rec.visits[v] = rec.visits[v] || {finalized:false,draft:{}};
-      rec.visits[v].finalized = true;
-      // تأكيد حفظ آخر مسودة
-      rec.visits[v].draft = safeClone(rec.visits[v].draft || {});
-      if(typeof window.dbPut==="function") await window.dbPut(rec);
-      window.loadedRecord = rec;
-      toast(`تم اعتماد الزيارة ${visitLabel(v)}.`);
-      try{ if(typeof window.refreshLens==="function") await window.refreshLens(); }catch{}
-      refreshVault();
-    }catch{
-      toast('تعذر الاعتماد.', false);
-    }
-  }
-
-  async function deleteActiveVisit(){
-    const v = Number(window.activeVisit||1);
-    if(!confirm(`تأكيد مسح بيانات الزيارة ${visitLabel(v)} للمعلم الحالي؟`)) return;
-
-    try{
-      if(typeof window.ensureRecord!=="function"){ toast('تعذر المسح.', false); return; }
-      const rec = await window.ensureRecord();
-      if(!rec){ toast('لا يوجد سجل.', false); return; }
-
-      // إعادة ضبط الزيارة
-      if(typeof window.zeroSupport==="function"){
-        rec.visits[v] = {finalized:false, draft: window.zeroSupport()};
-      }else{
-        rec.visits[v] = {finalized:false, draft:{ratings:null,tools:[],reasons:[],support:[],supportDetailed:[],date:''}};
+      if(rows.length){
+        out.push(`
+          <div class="sec">
+            <div class="secT">${R19_escapeHtml(domain.name)}</div>
+            <ul class="ul">${rows.join('')}</ul>
+          </div>
+        `);
       }
-      if(typeof window.dbPut==="function") await window.dbPut(rec);
-      window.loadedRecord = rec;
+    });
 
-      // إعادة تحميل
-      if(typeof window.renderFromRecord==="function") await window.renderFromRecord();
-      toast(`تم مسح الزيارة ${visitLabel(v)}.`);
-      try{ if(typeof window.refreshLens==="function") await window.refreshLens(); }catch{}
-      refreshVault();
-    }catch{
-      toast('تعذر مسح الزيارة.', false);
-    }
+    return out.length ? out.join('') : `<div class="note">— لم يتم تحديد مستويات لعناصر التعليم والتعلّم بعد.</div>`;
   }
 
-  async function clearAllRecords(){
-    if(!confirm('تأكيد مسح جميع السجلات (من الجهاز)؟')) return;
+  /* ====== تلخيص "الأدوات المساندة" من واجهة الصفحة الحالية ====== */
+  function R19_buildToolsSummaryHTML(v){
+    // نقرأ الحالة من UI (الأدوات) لأن المستخدم يحددها لكل زيارة
+    if(typeof window.getToolsStateFromUI !== 'function' || !window.toolsData){
+      return `<div class="note">— لم يتم العثور على بيانات الأدوات المساندة.</div>`;
+    }
+
+    // نحتاج تحميل سجل الزيارة المحددة لو كانت أدواتها محفوظة
+    let toolsStates = [];
+    let toolReasons = [];
     try{
-      if(typeof window.dbClear==="function") await window.dbClear();
-      // تنظيف واجهة
-      ['tName','tId','tSpec','degree','class','lesson'].forEach(id=>{ if(el(id)) el(id).value=''; });
-      if(el('supportArea')) el('supportArea').value='';
-      window.loadedRecord=null; window.fixedKey=null;
-      // إعادة بناء
-      try{ if(typeof window.buildLearning==="function") window.buildLearning(); }catch{}
-      try{ if(typeof window.buildTools==="function") window.buildTools(); }catch{}
-      try{ if(typeof window.calcAll==="function") window.calcAll(); }catch{}
-      toast('تم مسح جميع السجلات.');
-      refreshVault();
-      try{ if(typeof window.refreshLens==="function") await window.refreshLens(); }catch{}
-    }catch{
-      toast('تعذر مسح الجميع.', false);
+      const rec = window.loadedRecord;
+      if(rec?.visits?.[v]?.draft?.tools) toolsStates = rec.visits[v].draft.tools;
+      if(rec?.visits?.[v]?.draft?.reasons) toolReasons = rec.visits[v].draft.reasons;
+    }catch{}
+
+    // fallback: من UI الحالي (قد لا يطابق زيارة أخرى)
+    if(!toolsStates.length) toolsStates = window.getToolsStateFromUI() || [];
+    if(!toolReasons.length && typeof window.getToolReasonsFromUI === 'function'){
+      toolReasons = window.getToolReasonsFromUI() || [];
     }
-  }
 
-  /* =========
-     الشرح (Help Panel) + أسهم التمرير
-     ========= */
-  function fillHelpContent(){
-    const b = el('helpBody');
-    if(!b) return;
-    b.innerHTML = `
-      <h3>آلية العمل</h3>
-      <ul>
-        <li><span class="help-badge">١</span> أدخل بيانات المعلم (الاسم/الهوية/التخصص/الفصل/الدرس).</li>
-        <li><span class="help-badge">٢</span> قيّم عناصر التعليم والتعلّم باختيار مستوى الأداء.</li>
-        <li><span class="help-badge">٣</span> حدّد حالة الأدوات المساندة وأسباب عدم التفعيل عند الحاجة.</li>
-        <li><span class="help-badge">٤</span> سيُولّد النظام دعمًا مقترحًا (٤ أسطر) ويمكن تعديلها يدويًا.</li>
-        <li><span class="help-badge">٥</span> استخدم <b>اعتمد</b> لتثبيت الزيارة في السجل وظهورها بالحافظة.</li>
-      </ul>
+    const rows = window.toolsData.map((t,i)=>{
+      const s = toolsStates[i];
+      const status = (s===2?'مُفعل':(s===1?'إلى حد ما':(s===0?'غير مُفعل':'غير محدد')));
+      const why = (toolReasons[i]||'').trim();
+      return `
+        <tr>
+          <td>${i+1}</td>
+          <td style="text-align:right">${R19_escapeHtml(t.title||'—')}</td>
+          <td><span class="pill">${R19_escapeHtml(status)}</span></td>
+          <td style="text-align:right">${R19_escapeHtml(why || '—')}</td>
+        </tr>
+      `;
+    }).join('');
 
-      <div class="help-note">
-        <b>تنبيه:</b> الزيارة الثالثة مخصصة للدعم وتُفتح عند ضعف المؤشر وفق منطق النظام.
-      </div>
-
-      <h3>التقارير والطباعة</h3>
-      <ul>
-        <li><b>تقرير</b>: يفتح تقرير الزيارة الحالية في نافذة منبثقة مع زر طباعة.</li>
-        <li><b>بي دي إف</b>: يفتح تقريرًا شاملاً للزيارات 1-2-3 مع تنسيق طباعة A4 وترويسة بيانات المدرسة.</li>
-      </ul>
-
-      <div class="help-privacy">
-        <b>خصوصية:</b> البيانات تُحفظ محليًا على جهازك (IndexedDB/LocalStorage) ولا تُرفع لأي جهة.
+    return `
+      <div class="sec">
+        <div class="secT">الأدوات المساندة لعملية التعليم والتعلّم</div>
+        <div class="tblWrap">
+          <table class="miniTbl">
+            <thead><tr><th>م</th><th>الأداة</th><th>الحالة</th><th>سبب عدم التفعيل/الجزئي</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
       </div>
     `;
   }
 
-  function openHelp(){
-    const p = el('helpPanel');
+  /* ====== دعم المعلم (٤ أسطر) من السجل للزيارة v ====== */
+  function R19_getSupportLinesHTML(v){
+    let lines = [];
+    try{
+      const rec = window.loadedRecord;
+      const det = rec?.visits?.[v]?.draft?.supportDetailed || [];
+      if(det && det.length){
+        lines = det.slice(0,4).map(x=>`<li>□ ${R19_escapeHtml(x.text||'—')} <span class="src">${R19_escapeHtml(x.src||'')}</span></li>`);
+      }
+    }catch{}
+
+    // fallback: من textarea الحالي
+    if(!lines.length){
+      const raw = (R$('supportArea')?.value || '').split('\n').map(s=>s.trim()).filter(Boolean).slice(0,4);
+      lines = raw.map(t=>`<li>□ ${R19_escapeHtml(t)}</li>`);
+    }
+
+    return lines.length ? `<ul class="ul">${lines.join('')}</ul>` : `<div class="note">—</div>`;
+  }
+
+  /* ====== قالب التقرير (Visit / All) ====== */
+  function R19_baseCSS(){
+    return `
+      @page{ size:A4; margin:10mm; }
+      body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
+      .toolbar{position:sticky;top:0;z-index:50;display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:10px 12px;background:#fff;border-bottom:1px solid #e6efec}
+      .btn{border:1px solid #cfe1dd;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer}
+      .sheet{max-width:190mm;margin:0 auto}
+      .topline{margin:10px 0 2px;text-align:center;font-weight:900;color:#0c594e;font-size:12px;letter-spacing:.2px}
+      h1{margin:6px 0 10px;text-align:center;color:#0f7a66;font-family:"Cairo";font-size:20px}
+      .metaBadges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 10px}
+      .badge{border:1px solid #e6efec;background:#fbfdfc;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:900;font-size:11px}
+      .sec{border:1px solid #e6efec;border-radius:14px;background:#fbfdfc;padding:10px 10px;margin:10px 0}
+      .secT{font-weight:900;color:#0c594e;margin:0 0 6px}
+      .pill{display:inline-flex;align-items:center;justify-content:center;border:1px solid #cfe1dd;background:#e8f4f1;color:#0c594e;border-radius:999px;padding:2px 8px;font-weight:900;font-size:11px}
+      .ul{margin:6px 0 0;padding:0 18px}
+      .ul li{margin:4px 0;line-height:1.8}
+      .note{color:#5d737a;font-weight:800;font-size:12px}
+      .src{display:inline-block;margin-inline-start:6px;font-size:10px;font-weight:900;color:#0f7a66;border:1px solid #0f7a66;border-radius:8px;padding:.1rem .35rem;background:#f5fffb}
+      .tblWrap{overflow:auto;border:1px solid #e6efec;border-radius:12px}
+      .miniTbl{width:100%;border-collapse:collapse;table-layout:fixed}
+      .miniTbl th,.miniTbl td{border:1px solid #cfe1dd;padding:6px;text-align:center;font-size:11px;background:#fff;vertical-align:top;word-wrap:break-word}
+      .miniTbl thead th{background:#0c594e;color:#fff}
+      .footerSign{margin-top:12px;border-top:2px solid #cfe1dd;padding-top:10px;display:flex;gap:12px;justify-content:space-between;align-items:flex-end;flex-wrap:wrap}
+      .sigBox{flex:1;min-width:240px;border:1px dashed #cfe1dd;border-radius:12px;padding:8px 10px;background:#fff}
+      .sigT{font-weight:900;color:#0c594e;margin-bottom:6px}
+      .sigLine{height:1px;border-bottom:1px dashed #9fb5b1;margin:10px 0}
+      .sigName{font-weight:900}
+      .muted{color:#5d737a;font-weight:800;font-size:11px;text-align:center;margin:8px 0 2px}
+
+      /* ✅ مهم لحل صفحة البنر فقط */
+      .sec, .tblWrap, .miniTbl, tr, td, th{break-inside:auto;page-break-inside:auto;}
+      @media print{ .toolbar{display:none!important} .sheet{max-width:unset;margin:0} }
+    `;
+  }
+
+  function R19_openWindow(html){
+    const w = window.open('about:blank','_blank');
+    if(!w){ R19_snack('تعذر فتح نافذة التقرير (تحقق من مانع النوافذ المنبثقة).', false); return null; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    return w;
+  }
+
+  function R19_buildFooterSign(teacher, principal){
+    return `
+      <div class="footerSign">
+        <div class="sigBox">
+          <div class="sigT">اسم المعلم</div>
+          <div class="sigName">${R19_escapeHtml(teacher||'—')}</div>
+          <div class="sigLine"></div>
+          <div class="muted">توقيع المعلم</div>
+        </div>
+        <div class="sigBox" style="text-align:left">
+          <div class="sigT">مدير المدرسة</div>
+          <div class="sigName">${R19_escapeHtml(principal||'—')}</div>
+          <div class="sigLine"></div>
+          <div class="muted">توقيع مدير المدرسة</div>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ====== تقرير زيارة واحدة ====== */
+  R19.openVisitReport = function(){
+    const v = (window.activeVisit || 1);
+    const top = R19_getTop();
+    const n = R19_getNames();
+
+    if(!n.teacher && !n.nid){
+      R19_snack('أدخل اسم المعلم أو رقم الهوية أولاً.', false);
+      return;
+    }
+
+    const date = R19_getVisitDate(v);
+    const score = R19_visitScore(v);
+    const lvl = R19_levelLabel(score);
+
+    const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+      <title>تقرير زيارة ${R19_escapeHtml(R19_visitName(v))} — ${R19_escapeHtml(n.teacher||'—')}</title>
+      <style>${R19_baseCSS()}</style>
+    </head><body>
+      <div class="toolbar">
+        <button class="btn" onclick="window.print()">طباعة</button>
+        <button class="btn" onclick="window.close()">إغلاق</button>
+      </div>
+
+      <div class="sheet">
+        <div class="topline">${R19_escapeHtml(top.edu)} — ${R19_escapeHtml(top.sch)}</div>
+        <h1>تقرير زيارة صفية — الزيارة ${R19_escapeHtml(R19_visitName(v))}</h1>
+
+        <div class="metaBadges">
+          <span class="badge">التاريخ: <b>${R19_escapeHtml(date)}</b></span>
+          <span class="badge">اسم المعلم: <b>${R19_escapeHtml(n.teacher||'—')}</b></span>
+          <span class="badge">الهوية: <b>${R19_escapeHtml(n.nid||'—')}</b></span>
+          <span class="badge">التخصص: <b>${R19_escapeHtml(n.spec||'—')}</b></span>
+          <span class="badge">الفصل: <b>${R19_escapeHtml(n.klass||'—')}</b></span>
+          <span class="badge">الدرس: <b>${R19_escapeHtml(n.lesson||'—')}</b></span>
+          <span class="badge">نتيجة الزيارة: <b>${R19_escapeHtml(lvl)}</b> (${score}%)</span>
+        </div>
+
+        <div class="sec">
+          <div class="secT">عملية التعليم والتعلّم (ملخص العناصر المحددة)</div>
+          ${R19_buildLearningSummaryHTML(v)}
+        </div>
+
+        ${R19_buildToolsSummaryHTML(v)}
+
+        <div class="sec">
+          <div class="secT">الدعم المقدّم للمعلم (موجز عملي)</div>
+          ${R19_getSupportLinesHTML(v)}
+          <div class="note" style="margin-top:6px">
+            يهدف الدعم إلى تحسين الممارسات وتعزيز أثر التعلّم وفق أساليب متابعة بناءة وتغذية راجعة قابلة للتطبيق.
+          </div>
+        </div>
+
+        ${R19_buildFooterSign(n.teacher, n.principal)}
+        <div class="muted">تقرير داخلي لأغراض المتابعة والتحسين — يُراعى حفظ الخصوصية واستخدام البيانات وفق الأنظمة.</div>
+      </div>
+    </body></html>`;
+
+    R19_openWindow(html);
+  };
+
+  /* ====== تقرير شامل (3 زيارات) ====== */
+  R19.openAllReport = function(){
+    const top = R19_getTop();
+    const n = R19_getNames();
+
+    if(!n.teacher && !n.nid){
+      R19_snack('أدخل اسم المعلم أو رقم الهوية أولاً.', false);
+      return;
+    }
+
+    const dateHdr = (R$('visitDateInline')?.value || R19_hijriDate()).trim();
+
+    const blocks = [1,2,3].map(v=>{
+      const date = R19_getVisitDate(v);
+      const score = R19_visitScore(v);
+      const lvl = R19_levelLabel(score);
+      return `
+        <div class="sec">
+          <div class="secT">الزيارة ${R19_escapeHtml(R19_visitName(v))} — <span class="pill">${lvl}</span> (${score}%)</div>
+          <div class="metaBadges" style="justify-content:flex-start">
+            <span class="badge">التاريخ: <b>${R19_escapeHtml(date)}</b></span>
+          </div>
+
+          <div class="sec" style="margin:8px 0">
+            <div class="secT">ملخص عملية التعليم والتعلّم</div>
+            ${R19_buildLearningSummaryHTML(v)}
+          </div>
+
+          ${R19_buildToolsSummaryHTML(v)}
+
+          <div class="sec" style="margin:8px 0">
+            <div class="secT">الدعم المقدّم للمعلم</div>
+            ${R19_getSupportLinesHTML(v)}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+      <title>تقرير شامل — ${R19_escapeHtml(n.teacher||'—')}</title>
+      <style>${R19_baseCSS()}</style>
+    </head><body>
+      <div class="toolbar">
+        <button class="btn" onclick="window.print()">طباعة</button>
+        <button class="btn" onclick="window.close()">إغلاق</button>
+      </div>
+
+      <div class="sheet">
+        <div class="topline">${R19_escapeHtml(top.edu)} — ${R19_escapeHtml(top.sch)}</div>
+        <h1>تقرير شامل لزيارات المعلم</h1>
+
+        <div class="metaBadges">
+          <span class="badge">التاريخ: <b>${R19_escapeHtml(dateHdr)}</b></span>
+          <span class="badge">اسم المعلم: <b>${R19_escapeHtml(n.teacher||'—')}</b></span>
+          <span class="badge">الهوية: <b>${R19_escapeHtml(n.nid||'—')}</b></span>
+          <span class="badge">التخصص: <b>${R19_escapeHtml(n.spec||'—')}</b></span>
+        </div>
+
+        ${blocks}
+
+        ${R19_buildFooterSign(n.teacher, n.principal)}
+        <div class="muted">تقرير داخلي لأغراض المتابعة والتحسين — يُراعى حفظ الخصوصية واستخدام البيانات وفق الأنظمة.</div>
+      </div>
+    </body></html>`;
+
+    R19_openWindow(html);
+  };
+
+  /* ====== المراسلات (خوارزميًا) ====== */
+  function R19_buildCommsText(){
+    const top = R19_getTop();
+    const n = R19_getNames();
+    const v = (window.activeVisit || 1);
+    const date = R19_getVisitDate(v);
+    const score = R19_visitScore(v);
+    const lvl = R19_levelLabel(score);
+
+    const supportRaw = (R$('supportArea')?.value || '').split('\n').map(s=>s.trim()).filter(Boolean).slice(0,4);
+    const supportLines = supportRaw.length ? supportRaw.map(x=>`- ${x}`).join('\n') : '- —';
+
+    return [
+      `${top.edu} — ${top.sch}`,
+      `التاريخ: ${date}`,
+      `الموضوع: ملخص زيارة صفية (الزيارة ${R19_visitName(v)})`,
+      ``,
+      `اسم المعلم: ${n.teacher||'—'}  |  الهوية: ${n.nid||'—'}`,
+      `التخصص: ${n.spec||'—'}  |  الفصل: ${n.klass||'—'}  |  الدرس: ${n.lesson||'—'}`,
+      `نتيجة الزيارة: ${lvl} (${score}%)`,
+      ``,
+      `الدعم المقترح (موجز):`,
+      `${supportLines}`,
+      ``,
+      `مدير المدرسة: ${n.principal||'—'}`,
+      `*ملاحظة: الرسالة لأغراض المتابعة والتحسين، مع مراعاة الخصوصية والأنظمة.*`
+    ].join('\n');
+  }
+
+  function R19_toggleComms(open){
+    const p = R$('commsPanel');
     if(!p) return;
-    fillHelpContent();
-    p.style.display='block';
-  }
-  function closeHelp(){
-    const p = el('helpPanel');
-    if(p) p.style.display='none';
+    p.style.display = (open===false) ? 'none' : 'block';
   }
 
-  function bindScrollArrows(){
-    const up=el('scrollUp'), down=el('scrollDown');
-    if(up) up.onclick = ()=> window.scrollTo({top:0, behavior:'smooth'});
-    if(down) down.onclick = ()=> window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'});
+  /* ====== تحديث لوحة الشرح (Help) ====== */
+  function R19_renderHelp(){
+    const box = R$('helpBody');
+    if(!box) return;
+
+    box.innerHTML = `
+      <h3>كيف تستخدم الاستمارة باحتراف</h3>
+      <p>الاستمارة مخصّصة للمتابعة والتحسين المهني داخل المدرسة، وتعمل على توثيق الملاحظة الصفية بصورة منظمة تُسهم في دعم المعلم ورفع أثر التعلم.</p>
+
+      <div class="help-note">
+        <b>مبدأ مهم:</b> الهدف من الزيارة هو <u>الدعم والتحسين</u> عبر تغذية راجعة قابلة للتطبيق، وليس التركيز على الصياغات العقابية.
+      </div>
+
+      <h3>الخطوات المختصرة</h3>
+      <ul>
+        <li><span class="help-badge">1</span> أدخل بيانات المعلم (الاسم/الهوية/التخصص/الفصل/عنوان الدرس).</li>
+        <li><span class="help-badge">2</span> في <b>عملية التعليم والتعلّم</b> حدّد مستوى الأداء لكل عنصر (ضعيف/متوسط/متميز).</li>
+        <li><span class="help-badge">3</span> في <b>الأدوات المساندة</b> حدّد درجة التفعيل، واكتب سببًا مختصرًا عند عدم التفعيل أو التفعيل الجزئي.</li>
+        <li><span class="help-badge">4</span> سيُولّد قسم <b>الدعم المقدّم للمعلم</b> تلقائيًا (٤ أسطر عملية). يمكنك تعديلها بما يتوافق مع سياق الدرس.</li>
+        <li><span class="help-badge">5</span> استخدم <b>تقرير</b> لإخراج تقرير الزيارة الحالية، أو <b>بي دي إف</b> للتقرير الشامل للزيارات.</li>
+      </ul>
+
+      <h3>ما الذي يعزّز عملية التعليم والتعلّم؟ (أمثلة موجزة)</h3>
+      <ul>
+        <li>ربط الهدف السلوكي بنشاط واضح وأداة تقويم قصيرة (سؤال بنائي/بطاقة خروج).</li>
+        <li>تنويع الاستراتيجيات (فكر–زاوج–شارك / تعلم تعاوني) مع ضبط وقت الانتقال وتقليل الفاقد.</li>
+        <li>توظيف أداة رقمية واحدة تخدم الهدف (منصة/تقويم سريع) مع توثيق أثرها.</li>
+        <li>استخدام نتائج التقويم لتحديد متعثرين وخطة علاج قصيرة قابلة للقياس.</li>
+      </ul>
+
+      <div class="help-privacy">
+        <b>خصوصية البيانات:</b> يُراعى استخدام بيانات المعلم لأغراض العمل فقط، وعدم مشاركتها خارج القنوات الرسمية، وحفظها وفق الأنظمة والضوابط.
+      </div>
+    `;
   }
 
-  /* =========
-     ربط الأزرار (IDs الأصلية عندك)
-     ========= */
-  function bind(){
-    // التقرير/الـPDF
-    const bReport = el('btnReport');
-    const bPDFAll = el('btnPDFAll');
-    if(bReport) bReport.addEventListener('click', openReportSingle);
-    if(bPDFAll) bPDFAll.addEventListener('click', openReportAll);
+  /* ====== ربط الأزرار (IDs الصحيحة في صفحتك) ====== */
+  function R19_bind(){
+    // تقرير
+    const btnReport = R$('btnReport');
+    if(btnReport) btnReport.addEventListener('click', async ()=>{
+      try{
+        // حفظ سريع قبل فتح التقرير لضمان أحدث بيانات
+        if(typeof window.saveDraft === 'function') await window.saveDraft();
+      }catch{}
+      R19.openVisitReport();
+    });
+
+    // PDF شامل
+    const btnPDFAll = R$('btnPDFAll');
+    if(btnPDFAll) btnPDFAll.addEventListener('click', async ()=>{
+      try{
+        if(typeof window.saveDraft === 'function') await window.saveDraft();
+      }catch{}
+      R19.openAllReport();
+    });
 
     // المراسلات
-    const bComms = el('btnComms');
-    if(bComms) bComms.addEventListener('click', openCommsPanel);
-    el('commsClose')?.addEventListener('click', closeCommsPanel);
-    el('btnMakeComms')?.addEventListener('click', makeComms);
-    el('btnCopyComms')?.addEventListener('click', copyComms);
-    el('btnOpenWA')?.addEventListener('click', openWA);
-    el('btnOpenMail')?.addEventListener('click', openMail);
-    el('editDefaults')?.addEventListener('click', saveCommsDefaults);
-    el('btnFetchFromDB')?.addEventListener('click', fetchCommsFromDB);
-
-    // الحافظة
-    el('btnVault')?.addEventListener('click', openVault);
-    el('apClose')?.addEventListener('click', closeVault);
-
-    // الاعتماد/المسح
-    el('btnFinalize')?.addEventListener('click', finalizeVisit);
-    el('btnDeleteVisit')?.addEventListener('click', deleteActiveVisit);
-    el('btnClearAll')?.addEventListener('click', clearAllRecords);
-
-    // أزرار عائمة
-    el('fabHelp')?.addEventListener('click', openHelp);
-    el('helpClose')?.addEventListener('click', closeHelp);
-
-    // أسهم التمرير
-    bindScrollArrows();
-
-    // منصة التنظيم (زر fabHub) — لا تغيّر الرابط إن كان عندك سابقاً، فقط fallback هنا
-    el('fabHub')?.addEventListener('click', ()=>{
-      const url = (window.HUB_URL || 'https://fhz545-hub.github.io/');
-      window.open(url,'_blank','noopener');
+    const btnComms = R$('btnComms');
+    if(btnComms) btnComms.addEventListener('click', ()=>{
+      R19_toggleComms(true);
+      // توليد مباشر
+      try{
+        const t = R19_buildCommsText();
+        const area = R$('commsTxt');
+        if(area) area.value = t;
+      }catch{}
     });
 
-    // إغلاق لوحة المراسلات عند الضغط خارجها
-    document.addEventListener('click', (e)=>{
-      const panel=el('commsPanel'), btn=el('btnComms');
-      if(!panel || !btn) return;
-      if(panel.style.display==='block' && !panel.contains(e.target) && !btn.contains(e.target)){
-        // لا تغلق عند التفاعل داخل النافذة المنبثقة
-        // (خيار محافظ)
-      }
+    const commsClose = R$('commsClose');
+    if(commsClose) commsClose.addEventListener('click', ()=>R19_toggleComms(false));
+
+    const btnMakeComms = R$('btnMakeComms');
+    if(btnMakeComms) btnMakeComms.addEventListener('click', ()=>{
+      const area = R$('commsTxt');
+      const t = R19_buildCommsText();
+      if(area) area.value = t;
+      R19_snack('تم توليد الرسالة.');
     });
 
-    // توليد تلقائي لنص المراسلات عند تغيير بيانات المعلم (خفيف)
-    const auto = debounce(()=>{ try{ if(el('commsPanel')?.style.display==='block') makeComms(); }catch{} }, 240);
-    ['tName','tId','tSpec','degree','class','lesson'].forEach(id=>{
-      el(id)?.addEventListener('input', auto);
+    const btnCopyComms = R$('btnCopyComms');
+    if(btnCopyComms) btnCopyComms.addEventListener('click', async ()=>{
+      const t = (R$('commsTxt')?.value || R19_buildCommsText()).trim();
+      if(!t){ R19_snack('لا توجد رسالة للنسخ.', false); return; }
+      await R19_copy(t);
+      R19_snack('تم النسخ.');
     });
 
-    // حمّل افتراضيات مراسلات إن وجدت
-    try{
-      const m = localStorage.getItem('yaqfb_mailTo'); if(m && el('mailTo')) el('mailTo').value=m;
-      const w = localStorage.getItem('yaqfb_waPhone'); if(w && el('waPhone')) el('waPhone').value=w;
-    }catch{}
+    const btnOpenWA = R$('btnOpenWA');
+    if(btnOpenWA) btnOpenWA.addEventListener('click', ()=>{
+      const msg = (R$('commsTxt')?.value || R19_buildCommsText()).trim();
+      if(!msg){ R19_snack('لا توجد رسالة لإرسالها.', false); return; }
+      const phone = (R$('waPhone')?.value || '').replace(/[^\d]/g,'').trim();
+      const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank', 'noopener');
+    });
+
+    const btnOpenMail = R$('btnOpenMail');
+    if(btnOpenMail) btnOpenMail.addEventListener('click', ()=>{
+      const msg = (R$('commsTxt')?.value || R19_buildCommsText()).trim();
+      if(!msg){ R19_snack('لا توجد رسالة لإرسالها.', false); return; }
+      const to = (R$('mailTo')?.value || '').trim();
+      const n = R19_getNames();
+      const subj = `ملخص زيارة صفية — ${n.teacher||'—'}`;
+      const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(msg)}`;
+      window.location.href = url;
+    });
+
+    // زر الشرح العائم
+    const fabHelp = R$('fabHelp');
+    const helpPanel = R$('helpPanel');
+    if(fabHelp && helpPanel){
+      fabHelp.addEventListener('click', ()=>{
+        R19_renderHelp();
+        helpPanel.style.display='block';
+      });
+    }
+    const helpClose = R$('helpClose');
+    if(helpClose) helpClose.addEventListener('click', ()=>{ if(helpPanel) helpPanel.style.display='none'; });
+
+    // زر المنصة العائم (إن لم يكن مربوطًا)
+    const fabHub = R$('fabHub');
+    if(fabHub){
+      fabHub.addEventListener('click', ()=>{
+        // ضع رابط منصتك إن كان موجودًا في كودك الأساسي
+        const url = (window.SCHOOL_HUB_URL || 'https://fhz545-hub.github.io/');
+        window.open(url, '_blank', 'noopener');
+      });
+    }
   }
 
-  // تنفيذ الربط بعد جاهزية DOM
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bind);
-  else bind();
+  // ابدأ الربط بعد تحميل DOM
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', R19_bind);
+  }else{
+    R19_bind();
+  }
 
 })();
 </script>
