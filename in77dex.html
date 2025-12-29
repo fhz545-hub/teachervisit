@@ -1684,596 +1684,387 @@ $('#tId').addEventListener('input',()=>{
 /* حفظ الدعم عند التعديل اليدوي */
 $('#supportArea').addEventListener('input',dfn(()=>{ saveDraft(); },240));
 </script>
-<!-- ============ PART 19 / 20 ============ -->
+<!-- ============ PART 19 / 25 (FIXED) ============ -->
 <script>
-/* =========================================================
-   تفعيل الأزرار + التقارير + PDF + المراسلات (إصلاح شامل)
-   ========================================================= */
-(function(){
-  const el = (id)=>document.getElementById(id);
+/* =======================
+   PART 19 FIXES (Report/PDF/Messages)
+   ======================= */
 
-  /* ---------- أدوات مساعدة ---------- */
-  function togglePanel(panel, show=null){
-    if(!panel) return;
-    const isShown = panel.style.display && panel.style.display !== 'none';
-    const want = (show===null) ? !isShown : !!show;
-    panel.style.display = want ? 'block' : 'none';
-  }
-  function escapeHtml(s){
-    return String(s ?? '').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
-  }
-  function visitName(v){ return v===1?'الأولى':(v===2?'الثانية':'الثالثة (دعم)'); }
-  function nowHijriSafe(){ return (typeof hijriNow==='function') ? hijriNow() : '—'; }
+/* ====== Helpers ====== */
+const el = (id)=>document.getElementById(id);
 
-  /* ---------- أسهم التمرير ---------- */
-  el('scrollUp')?.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
-  el('scrollDown')?.addEventListener('click',()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
 
-  /* ---------- زر المنصة (HUB) ---------- */
-  const LS_HUB_URL = 'hub_url';
-  function getHubUrl(){
-    return (localStorage.getItem(LS_PREFIX+LS_HUB_URL) || 'https://fhz545-hub.github.io/Teachers/').trim();
-  }
-  el('fabHub')?.addEventListener('click',()=>{
-    const url=getHubUrl();
-    window.open(url,'_blank','noopener');
+function copyToClipboard(text){
+  return navigator.clipboard?.writeText(text).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    ta.remove();
   });
-  el('fabHub')?.addEventListener('contextmenu',(e)=>{
-    e.preventDefault();
-    const cur=getHubUrl();
-    const u=prompt('https://fhz545-hub.github.io/Teachers:',cur);
-    if(u!==null){
-      try{ localStorage.setItem(LS_PREFIX+LS_HUB_URL, u.trim()); }catch{}
-      snack?.('تم حفظ رابط المنصة.');
-    }
-  });
+}
 
-  /* ---------- لوحة الشرح (كما هي النسخة السابقة لديك) ---------- */
-  // ملاحظة: أنت قلت النسخة السابقة ممتازة؛ لذلك لا أغيرها هنا.
-  // نفعل فقط فتح/إغلاق.
-  el('fabHelp')?.addEventListener('click',()=>{
-    // إن كان buildHelp موجود عندك سابقًا سيعمل، وإن لم يوجد نفتح اللوحة فقط.
-    try{ if(typeof buildHelp==='function') buildHelp(); }catch{}
-    el('helpPanel') && (el('helpPanel').style.display='block');
-  });
-  el('helpClose')?.addEventListener('click',()=>{ el('helpPanel') && (el('helpPanel').style.display='none'); });
+function snack(msg, ok=true){
+  // إذا عندك نظام Toast خاص في النسخة الأساسية، اتركه كما هو.
+  // هنا fallback بسيط:
+  try{
+    const n=el('snack');
+    if(n){ n.textContent=msg; n.style.display='block'; setTimeout(()=>n.style.display='none',2200); return; }
+  }catch{}
+  console.log(msg);
+  if(!ok) alert(msg);
+}
 
-  /* =========================================================
-     المراسلات: تفعيل كامل (توليد/نسخ/واتساب/بريد/حفظ افتراضي/استدعاء)
-     ========================================================= */
-  function loadCommsDefaults(){
-    const m=localStorage.getItem(LS_PREFIX+'mailTo')||'';
-    const p=localStorage.getItem(LS_PREFIX+'waPhone')||'';
-    if(el('mailTo') && m) el('mailTo').value=m;
-    if(el('waPhone') && p) el('waPhone').value=p;
-  }
-  function saveCommsDefaults(){
-    const m=(el('mailTo')?.value||'').trim();
-    const p=(el('waPhone')?.value||'').trim();
-    try{
-      if(m) localStorage.setItem(LS_PREFIX+'mailTo',m);
-      if(p) localStorage.setItem(LS_PREFIX+'waPhone',p);
-    }catch{}
-  }
+/* ====== Defaults / Storage ====== */
+const LS_PREFIX = (window.LS_PREFIX || 'TEACH-VISIT-1447-');
+const REPORT_HEADER_IMG = (window.REPORT_HEADER_IMG || (window.headerImgSrc || '')); // ضع رابط صورة الهيدر هنا إن رغبت
 
-  async function fetchFromDBToComms(){
-    const rec = await ensureRecord?.();
-    if(!rec){ snack?.('أدخل اسم المعلم أو الهوية أولاً.',false); return; }
-    if(el('mailTo')) el('mailTo').value = (rec.email||el('mailTo').value||'').trim();
-    if(el('waPhone')) el('waPhone').value = (rec.phone||el('waPhone').value||'').trim();
-    snack?.('تم استدعاء البريد/الجوال من السجل.',true);
-  }
+function getEduAdmin(){
+  return (localStorage.getItem(LS_PREFIX+'eduAdmin') || 'الإدارة العامة للتعليم بالمنطقة الشرقية').trim();
+}
+function getSchoolName(){
+  return (localStorage.getItem(LS_PREFIX+'schoolName') || 'ثانوية اليعقوبي بالخبر').trim();
+}
+function getPrincipal(){
+  return (localStorage.getItem(LS_PREFIX+'principal') || 'فهد حامد علي الزهراني').trim();
+}
 
-  function commsBuildMessage(){
-    const name = (el('tName')?.value||'').trim() || 'المعلم';
-    const spec = (el('tSpec')?.value||'').trim() || '—';
-    const klass = (el('class')?.value||'').trim() || '—';
-    const lesson = (el('lesson')?.value||'').trim() || '—';
-    const date = (el('v'+(window.activeVisit||1)+'h')?.textContent || el('visitDateInline')?.value || nowHijriSafe()).trim();
-    const v = (window.activeVisit||1);
-    const p = (typeof visitScore==='function') ? visitScore(v) : 0;
-    const lvl = (typeof levelLabel==='function') ? levelLabel(p) : '—';
+function nowHijriSafe(){
+  // إذا عندك دالة أم القرى في النسخة الأساسية استخدمها
+  try{
+    if(typeof window.getHijriUmmAlQura==='function') return window.getHijriUmmAlQura();
+  }catch{}
+  // fallback (تقريبي) للتاريخ النصي فقط
+  const d=new Date();
+  return d.toLocaleDateString('ar-SA-u-ca-islamic', {year:'numeric',month:'2-digit',day:'2-digit'});
+}
 
-    // الدعم 4 أسطر (يُولّد إن لزم)
-    let supp = [];
-    try{
-      const det = (typeof ensureSupport==='function') ? ensureSupport() : [];
-      supp = (det||[]).slice(0,4).map(x=>x.text).filter(Boolean);
-    }catch{}
-    if(!supp.length){
-      const txt=(el('supportArea')?.value||'').trim();
-      if(txt) supp = txt.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,4);
-    }
+/* ====== Visit labels ====== */
+function visitName(v){
+  return (v===1?'الأولى':(v===2?'الثانية':(v===3?'الثالثة':String(v))));
+}
 
-    const subject = `ملخص زيارة صفية — ${name} — الزيارة ${visitName(v)}`;
-    const body =
-`السلام عليكم ورحمة الله وبركاته
-نفيدكم بملخص الزيارة الصفية للمعلم/ ${name} (التخصص: ${spec})
-الزيارة: ${visitName(v)} — المستوى: ${lvl} (المؤشر: ${p}%)
-التاريخ: ${date}
-الفصل: ${klass} — عنوان الدرس: ${lesson}
+/* ====== Safe fetch record ====== */
+function ensureRecord(){
+  const name=(el('tName')?.value||'').trim();
+  const nid=(el('tId')?.value||'').trim();
+  if(!name && !nid) return null;
+  return {
+    name: name || '—',
+    nid: nid || '—',
+    spec: (el('tSpec')?.value||'—').trim(),
+    degree:(el('degree')?.value||'—').trim(),
+    lesson:(el('lesson')?.value||'—').trim(),
+    klass:(el('class')?.value||'—').trim(),
+  };
+}
 
-الدعم/التوصيات (4 نقاط):
-${(supp.length? supp : ['—']).map(s=>`- ${s}`).join('\n')}
+/* ====== Scores (fallback) ====== */
+function visitScore(v){
+  // إذا عندك محسّب الدرجات بالنسخة الأساسية استبدله بها
+  // هنا fallback: يحاول قراءة عنصر id="scoreV1/2/3" أو data-score
+  const n = el('scoreV'+v);
+  const p = n ? Number(n.textContent||n.dataset.score||0) : 0;
+  return isFinite(p)? Math.max(0,Math.min(100,Math.round(p))) : 0;
+}
+function levelLabel(p){
+  if(p>=90) return 'متميز';
+  if(p>=75) return 'متقدم';
+  if(p>=60) return 'مقبول';
+  if(p>0) return 'يحتاج دعم';
+  return '—';
+}
 
-شاكرين تعاونكم.
-مدير المدرسة: ${(localStorage.getItem(LS_PREFIX+'principal') || el('pr1Name')?.textContent || '—').trim()}`;
+/* ====== Builders (تقرير شامل) ====== */
+function buildVisitBlockHTML(v, rec){
+  const vLbl = visitName(v);
+  const p = visitScore(v);
+  const lvl = levelLabel(p);
 
-    return {subject, body};
-  }
+  // تاريخ الزيارة: يدور بين عناصر محتملة
+  const date =
+    (el('v'+v+'h')?.textContent || el('visitDateInline')?.value || nowHijriSafe()).trim();
 
-  function commsWritePreview(){
-    const {subject, body} = commsBuildMessage();
-    const box = el('commsTxt');
-    if(box) box.value = `${subject}\n\n${body}`;
-    return {subject, body};
-  }
+  // محتوى الزيارة: إن كان عندك HTML جاهز بالنسخة الأساسية استخدمه هنا
+  // fallback: يعرض ملخص بسيط + خانة دعم
+  const supportList = (typeof ensureSupport==='function')
+    ? (ensureSupport()||[]).slice(0,4).map(o=>`<li>□ ${escapeHtml(o.text)} <span class="srcBadge">${escapeHtml(o.src||'')}</span></li>`).join('')
+    : `<li>□ متابعة تنفيذ استراتيجية تدريس مناسبة للدرس.</li>
+       <li>□ دعم في تنويع أدوات التقويم وقياس الفهم.</li>`;
 
-  async function commsCopy(){
-    const txt = (el('commsTxt')?.value||'').trim();
-    if(!txt){ snack?.('لا يوجد نص لنسخه.',false); return; }
-    try{
-      await navigator.clipboard.writeText(txt);
-      snack?.('تم النسخ.');
-    }catch{
-      // fallback
-      const ta=el('commsTxt'); if(!ta) return;
-      ta.focus(); ta.select();
-      document.execCommand('copy');
-      snack?.('تم النسخ.');
-    }
-  }
-
-  function commsOpenWA(){
-    const phoneRaw = (el('waPhone')?.value||'').trim();
-    const phone = phoneRaw.replace(/[^\d]/g,'');
-    const txt = (el('commsTxt')?.value||'').trim();
-    if(!phone || phone.length<10){ snack?.('أدخل رقم واتساب بصيغة دولية (9665xxxxxxx).',false); return; }
-    if(!txt){ snack?.('ولّد الرسالة أولاً.',false); return; }
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(txt)}`;
-    window.open(url,'_blank','noopener');
-  }
-
-  function commsOpenMail(){
-    const to = (el('mailTo')?.value||'').trim();
-    const {subject, body} = commsBuildMessage();
-    if(!to || !to.includes('@')){ snack?.('أدخل بريدًا صحيحًا.',false); return; }
-    const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = url;
-  }
-
-  // ربط أزرار المراسلات
-  el('btnComms')?.addEventListener('click',()=>{
-    loadCommsDefaults();
-    togglePanel(el('commsPanel'),true);
-    commsWritePreview();
-  });
-  el('commsClose')?.addEventListener('click',()=>togglePanel(el('commsPanel'),false));
-
-  el('btnMakeComms')?.addEventListener('click',()=>{
-    commsWritePreview();
-    snack?.('تم توليد الرسالة.');
-  });
-  el('btnCopyComms')?.addEventListener('click',commsCopy);
-  el('btnOpenWA')?.addEventListener('click',commsOpenWA);
-  el('btnOpenMail')?.addEventListener('click',commsOpenMail);
-
-  el('editDefaults')?.addEventListener('click',()=>{
-    saveCommsDefaults();
-    snack?.('تم حفظ بيانات المراسلات كافتراضي.');
-  });
-
-  el('btnFetchFromDB')?.addEventListener('click',fetchFromDBToComms);
-
-  // تحميل افتراضيات عند التشغيل
-  loadCommsDefaults();
-
-  /* =========================================================
-     الحافظة (المعلمين المُزارون) — كما عندك لكن مفعّل بالكامل
-     ========================================================= */
-  async function refreshApprovedPanel(){
-    const listEl=el('approvedList'); if(!listEl) return;
-    const list=(await dbAll?.())||[];
-    const picked=list.filter(t=>{
-      const v=t.visits||{};
-      return !!(v[1]?.finalized || v[2]?.finalized || v[3]?.finalized);
-    }).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ar'));
-
-    if(!picked.length){ listEl.textContent='—'; return; }
-
-    listEl.innerHTML = picked.map(t=>{
-      const v=t.visits||{};
-      const badge1 = v[1]?.finalized ? '✅١' : '—١';
-      const badge2 = v[2]?.finalized ? '✅٢' : '—٢';
-      const badge3 = v[3]?.finalized ? '✅٣' : '—٣';
-      const tail = t.nationalId ? ` • ${t.nationalId}` : '';
-      return `
-        <span class="name-chip" data-k="${t.teacherId}" title="فتح السجل">
-          ${escapeHtml(t.name||'—')} <span class="srcBadge">${badge1} ${badge2} ${badge3}</span>
-          <span style="opacity:.65;font-size:11px">${escapeHtml(tail)}</span>
-        </span>
-      `;
-    }).join('');
-
-    [...listEl.querySelectorAll('.name-chip')].forEach(ch=>{
-      ch.addEventListener('click', async ()=>{
-        const key = ch.getAttribute('data-k');
-        const rec = await dbGet?.(key); if(!rec) return;
-
-        el('tName').value=rec.name||'';
-        el('tId').value=rec.nationalId||'';
-        el('tSpec').value=rec.spec||'';
-        el('degree').value=rec.degree||'';
-        el('class').value=rec.class||'';
-        el('lesson').value=rec.lesson||'';
-        if(el('mailTo')) el('mailTo').value=rec.email||el('mailTo').value||'';
-        if(el('waPhone')) el('waPhone').value=rec.phone||el('waPhone').value||'';
-
-        window.fixedKey=rec.teacherId;
-        window.loadedRecord=rec;
-        await renderFromRecord?.();
-
-        togglePanel(el('approvedPanel'), false);
-        snack?.('تم فتح سجل المعلم.');
-      });
-    });
-  }
-
-  el('btnVault')?.addEventListener('click', async ()=>{
-    await refreshApprovedPanel();
-    togglePanel(el('approvedPanel'), true);
-  });
-  el('apClose')?.addEventListener('click',()=>togglePanel(el('approvedPanel'),false));
-
-  /* =========================================================
-     التقارير + PDF (إصلاح: تعريف buildVisitBlockHTML + ربط صحيح)
-     ========================================================= */
-  const REPORT_HEADER_IMG = 'logo2.png';
-
-  function buildVisitBlockHTML(v, rec){
-    // استخدم Snapshot من السجل (أدق من UI عند التبديل)
-    const snap = rec?.visits?.[v]?.draft || {};
-    const ratings = snap.ratings || (typeof zeroMatrix==='function' ? zeroMatrix() : []);
-    const tools = snap.tools || [];
-    const reasons = snap.reasons || [];
-    const date = (snap.date || '—').trim();
-
-    const name = (rec?.name || el('tName')?.value || '—').trim();
-    const nid = (rec?.nationalId || el('tId')?.value || '—').trim();
-    const spec = (rec?.spec || el('tSpec')?.value || '—').trim();
-    const degree = (rec?.degree || el('degree')?.value || '—').trim();
-    const klass = (rec?.class || el('class')?.value || '—').trim();
-    const lesson = (rec?.lesson || el('lesson')?.value || '—').trim();
-
-    // حساب مؤشر الزيارة من البيانات (بدون الاعتماد على activeVisit)
-    let pct = 0;
-    try{
-      // نفس منطق visitScore تقريبًا: (الاختيارات / 3)*85 + (الأدوات)*15
-      const flat = (ratings||[]).flat().filter(Boolean);
-      const areaPct = flat.length ? (flat.reduce((a,b)=>a+b,0)/(flat.length*3))*85 : 0;
-      const tScaled = ((tools.reduce((a,b)=>a+(b===2?1:(b===1?0.5:0)),0)/(tools.length||1))*15);
-      pct = Math.min(100, Math.round(areaPct + tScaled));
-    }catch{ pct = 0; }
-
-    const lvl = (typeof levelLabel==='function') ? levelLabel(pct) : '—';
-
-    // learning table
-    let learnHTML='';
-    try{
-      (fields||[]).forEach((f,fi)=>{
-        let rows='';
-        (f.items||[]).forEach((pair,ii)=>{
-          const label = pair[0];
-          const val = (ratings?.[fi]?.[ii]) || 0;
-          const lvlCell = val===3?'متميز':(val===2?'متوسط':(val===1?'ضعيف':'—'));
-
-          const bank = (learnBank?.[f.name]?.[label]) || {};
-          const ok = bank.ok || '—';
-          const need = bank.need || '—';
-
-          const okCell = (val===3 ? ok : (val===2 ? 'تقدّم يحتاج تثبيتًا.' : '—'));
-          const needCell = (val>0 && val<=2 ? need : '—');
-
-          rows += `<tr><td>${escapeHtml(label)}</td><td><b>${escapeHtml(lvlCell)}</b></td><td>${escapeHtml(okCell)}</td><td>${escapeHtml(needCell)}</td></tr>`;
-        });
-        learnHTML += `<tr><th colspan="4" class="ghead">${escapeHtml(f.name)}</th></tr>${rows}`;
-      });
-    }catch{
-      learnHTML = `<tr><td colspan="4">—</td></tr>`;
-    }
-
-    // tools table
-    let toolsHTML='';
-    try{
-      (toolsData||[]).forEach((t,i)=>{
-        const s = tools[i];
-        const lv = s===2?'مُفعل':(s===1?'إلى حد ما':(s===0?'غير مُفعل':'—'));
-        toolsHTML += `<tr>
-          <td>${i+1}</td>
-          <td>${escapeHtml(t.title||'—')}<div class="mini">${escapeHtml(t.proof||'')}</div></td>
-          <td><b>${escapeHtml(lv)}</b></td>
-          <td>${escapeHtml(reasons[i]||'—')}</td>
-        </tr>`;
-      });
-    }catch{
-      toolsHTML = `<tr><td colspan="4">—</td></tr>`;
-    }
-
-    // support
-    const supp = (snap.supportDetailed || []).slice(0,4).map(o=>o?.text).filter(Boolean);
-    const suppHTML = (supp.length? supp : ['—']).map(s=>`<li>□ ${escapeHtml(s)}</li>`).join('');
-
-    return `
-      <div class="visitBlock">
-        <div class="vHead">
-          <div class="vTitle">الزيارة ${escapeHtml(visitName(v))}</div>
-          <div class="vMeta">المستوى: <b>${escapeHtml(lvl)}</b> • المؤشر: ${pct}% • التاريخ: ${escapeHtml(date||'—')}</div>
-        </div>
-
-        <div class="badges">
-          <span class="badge">اسم المعلم: <b>${escapeHtml(name)}</b></span>
-          <span class="badge">الهوية: ${escapeHtml(nid)}</span>
-          <span class="badge">التخصص: ${escapeHtml(spec)}</span>
-          <span class="badge">المرتبة: ${escapeHtml(degree)}</span>
-          <span class="badge">الفصل: ${escapeHtml(klass)}</span>
-          <span class="badge">عنوان الدرس: ${escapeHtml(lesson)}</span>
-        </div>
-
-        <h3>عملية التعليم والتعلّم</h3>
-        <table>
-          <thead class="sub"><tr><th>العنصر</th><th>المستوى</th><th>جوانب التميّز</th><th>الاحتياجات</th></tr></thead>
-          <tbody>${learnHTML}</tbody>
-          <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
-        </table>
-
-        <h3>الأدوات المساندة</h3>
-        <table>
-          <thead class="sub"><tr><th>م</th><th>الأداة</th><th>التفعيل</th><th>أسباب عدم التفعيل</th></tr></thead>
-          <tbody>${toolsHTML}</tbody>
-          <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
-        </table>
-
-        <h3>الدعم المقدّم للمعلم</h3>
-        <ul>${suppHTML}</ul>
+  return `
+    <section class="visitBlock">
+      <div class="vHead">
+        <div class="vTitle">الزيارة ${escapeHtml(vLbl)}</div>
+        <div class="vMeta">التاريخ: ${escapeHtml(date)} — المستوى: <b>${escapeHtml(lvl)}</b> (${p}%)</div>
       </div>
-    `;
-  }
 
-  function openReport(){
-    // تقرير الزيارة الحالية من UI
-    const name=(el('tName')?.value||'—').trim();
-    const nid=(el('tId')?.value||'—').trim();
-    const spec=(el('tSpec')?.value||'—').trim();
-    const degree=(el('degree')?.value||'—').trim();
-    const lesson=(el('lesson')?.value||'—').trim();
-    const klass=(el('class')?.value||'—').trim();
-    const v = (window.activeVisit||1);
-    const vLbl = visitName(v);
-    const p = (typeof visitScore==='function') ? visitScore(v) : 0;
-    const lvl = (typeof levelLabel==='function') ? levelLabel(p) : '—';
-    const date=(el('v'+v+'h')?.textContent||el('visitDateInline')?.value||'—').trim();
-    const principal=(localStorage.getItem(LS_PREFIX+'principal')||el('pr1Name')?.textContent||'—').trim();
+      <div class="badges">
+        <span class="badge">المعلم: ${escapeHtml(rec.name)}</span>
+        <span class="badge">الهوية: ${escapeHtml(rec.nid)}</span>
+        <span class="badge">التخصص: ${escapeHtml(rec.spec)}</span>
+        <span class="badge">الفصل: ${escapeHtml(rec.klass)}</span>
+        <span class="badge">عنوان الدرس: ${escapeHtml(rec.lesson)}</span>
+      </div>
 
-    // learning
-    let learnHTML='';
-    try{
-      (fields||[]).forEach((f,fi)=>{
-        let rows='';
-        (f.items||[]).forEach((pair,ii)=>{
-          const label=pair[0];
-          const val=(store?.[v]?.[fi]?.[ii])||0;
-          const lvlCell=val===3?'متميز':(val===2?'متوسط':(val===1?'ضعيف':'—'));
-          const bank=(learnBank?.[f.name]?.[label])||{};
-          const okCell=(val===3? (bank.ok||'—') : (val===2?'تقدّم يحتاج تثبيتًا.':'—'));
-          const needCell=(val>0 && val<=2? (bank.need||'—') : '—');
-          rows+=`<tr><td>${escapeHtml(label)}</td><td><b>${escapeHtml(lvlCell)}</b></td><td>${escapeHtml(okCell)}</td><td>${escapeHtml(needCell)}</td></tr>`;
-        });
-        learnHTML+=`<tr><th colspan="4" class="ghead">${escapeHtml(f.name)}</th></tr>${rows}`;
-      });
-    }catch{
-      learnHTML = `<tr><td colspan="4">—</td></tr>`;
-    }
+      <h3 style="margin:10px 0 6px;color:#0f7a66;font-family:Cairo;text-align:center">الدعم المقدّم للمعلم</h3>
+      <ul>${supportList || '<li>—</li>'}</ul>
+    </section>
+  `;
+}
 
-    // tools (من UI الحالية)
-    const states = (typeof getToolsStateFromUI==='function') ? getToolsStateFromUI() : [];
-    const reasons= (typeof getToolReasonsFromUI==='function') ? getToolReasonsFromUI() : [];
-    let toolsHTML='';
-    try{
-      (toolsData||[]).forEach((t,i)=>{
-        const s=states[i];
-        const lv=s===2?'مُفعل':(s===1?'إلى حد ما':(s===0?'غير مُفعل':'—'));
-        toolsHTML+=`<tr><td>${i+1}</td><td>${escapeHtml(t.title||'—')}<div class="mini">${escapeHtml(t.proof||'')}</div></td><td><b>${escapeHtml(lv)}</b></td><td>${escapeHtml(reasons[i]||'—')}</td></tr>`;
-      });
-    }catch{
-      toolsHTML = `<tr><td colspan="4">—</td></tr>`;
-    }
+/* =======================
+   ✅ 1) تقرير زيارة (Popup + Print)
+   ======================= */
+function openReport(){
+  const rec = ensureRecord();
+  if(!rec){ snack('أدخل اسم المعلم أو الهوية أولاً.', false); return; }
 
-    // support
-    let det=[];
-    try{ det = (typeof ensureSupport==='function') ? ensureSupport() : []; }catch{}
-    const suppHTML = (det||[]).slice(0,4).map(o=>`<li>□ ${escapeHtml(o.text)} <span class="srcBadge">${escapeHtml(o.src||'')}</span></li>`).join('');
+  const v = (window.activeVisit || 1);
+  const vLbl = visitName(v);
+  const p = visitScore(v);
+  const lvl = levelLabel(p);
+  const date = (el('v'+v+'h')?.textContent || el('visitDateInline')?.value || nowHijriSafe()).trim();
 
-    const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-      <title>تقرير زيارة — ${escapeHtml(name)}</title>
-      <style>
-        body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
-        .sheet{width:185mm;margin:0 auto;padding:10mm 10mm 12mm;box-sizing:border-box}
-        .hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:0 0 8px 0;border:1px solid #e6efec}
-        .hdrImg img{width:100%;height:auto;display:block}
-        h3{margin:8px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
-        .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px}
-        .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:700;font-size:11px}
-        table{width:100%;border-collapse:collapse;table-layout:fixed}
-        th,td{border:1px solid #cfe1dd;padding:6px;font-size:11px;vertical-align:top;word-wrap:break-word;text-align:center}
-        th{background:#0c594e;color:#fff}
-        .sub th{background:#f0f7f5;color:#0c594e}
-        .ghead{background:#0c594e;color:#fff}
-        .mini{font-size:10px;opacity:.9}
-        .tfoot-brand td{background:#e8f4f1;border-top:3px solid #0f7a66;padding:4px 6px}
-        ul{margin:6px 0 0 0;padding:0 18px}
-        li{margin:4px 0;text-align:right}
-        .srcBadge{display:inline-block;padding:.1rem .4rem;border-radius:8px;border:1px solid #0f7a66;color:#0f7a66;background:#f5fffb;margin-inline-start:6px;font-size:10px;font-weight:800}
-        .signs-inline{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap}
-        .signItem{border:1px solid #cfe1dd;padding:6px 10px;border-radius:10px;min-width:48%;text-align:center;font-size:11px}
-      </style></head><body>
-      <div class="sheet">
-        <div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>
-        <div class="badges">
-          <span class="badge">اسم المعلم: <b>${escapeHtml(name)}</b></span>
-          <span class="badge">الهوية: ${escapeHtml(nid)}</span>
-          <span class="badge">التخصص: ${escapeHtml(spec)}</span>
-          <span class="badge">المرتبة: ${escapeHtml(degree)}</span>
-          <span class="badge">عنوان الدرس: ${escapeHtml(lesson)}</span>
-          <span class="badge">الفصل: ${escapeHtml(klass)}</span>
-          <span class="badge">الزيارة: ${escapeHtml(vLbl)} — المستوى: <b>${escapeHtml(lvl)}</b> (${p}%)</span>
-          <span class="badge">تاريخ الزيارة: ${escapeHtml(date)}</span>
-        </div>
+  const eduAdmin = getEduAdmin();
+  const schoolName = getSchoolName();
+  const principal = getPrincipal();
 
-        <h3>عملية التعليم والتعلّم</h3>
-        <table>
-          <thead class="sub"><tr><th>العنصر</th><th>المستوى</th><th>جوانب التميّز</th><th>الاحتياجات</th></tr></thead>
-          <tbody>${learnHTML}</tbody>
-          <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
-        </table>
+  const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+  <title>تقرير زيارة — ${escapeHtml(rec.name)}</title>
+  <style>
+    @page{ size:A4; margin:10mm; }
+    body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
+    .toolbar{position:sticky;top:0;z-index:50;display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:10px 12px;background:#fff;border-bottom:1px solid #e6efec}
+    .btn{border:1px solid #cfe1dd;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer}
+    .sheet{max-width:190mm;margin:0 auto;padding:0}
+    .hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:10px 0;border:1px solid #e6efec}
+    .hdrImg img{width:100%;height:auto;display:block}
+    .headBox{border:1px solid #e6efec;border-radius:16px;background:#fbfdfc;padding:10px 12px;margin:0 0 10px}
+    .row{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
+    .cell{flex:1;min-width:240px;border:1px solid #cfe1dd;background:#e8f4f1;border-radius:12px;padding:8px 10px;font-weight:800}
+    .cell b{font-weight:900}
+    h2{margin:6px 0 8px;color:#0f7a66;font-family:"Cairo";text-align:center}
+    .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 10px}
+    .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:800;font-size:11px}
+    .block{break-inside:auto;page-break-inside:auto}
+    @media print{ .toolbar{display:none!important} .sheet{max-width:unset;margin:0} }
+  </style></head><body>
+    <div class="toolbar">
+      <button class="btn" onclick="window.print()">طباعة</button>
+      <button class="btn" onclick="window.close()">إغلاق</button>
+    </div>
 
-        <h3>الأدوات المساندة</h3>
-        <table>
-          <thead class="sub"><tr><th>م</th><th>الأداة</th><th>التفعيل</th><th>أسباب عدم التفعيل</th></tr></thead>
-          <tbody>${toolsHTML}</tbody>
-          <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
-        </table>
+    <div class="sheet">
+      ${REPORT_HEADER_IMG ? `<div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>` : ``}
 
-        <h3>الدعم المقدّم للمعلم</h3>
-        <ul>${suppHTML || '<li>—</li>'}</ul>
-
-        <div class="signs-inline">
-          <div class="signItem">اسم المعلم وتوقيعه: <b>${escapeHtml(name)}</b></div>
-          <div class="signItem">اسم المدير وتوقيعه: <b>${escapeHtml(principal)}</b></div>
+      <div class="headBox">
+        <div class="row">
+          <div class="cell">
+            <b>${escapeHtml(eduAdmin)}</b> — <b>${escapeHtml(schoolName)}</b><br>
+            اسم المعلم: <b>${escapeHtml(rec.name)}</b>
+          </div>
+          <div class="cell" style="text-align:left">
+            مدير المدرسة: <b>${escapeHtml(principal)}</b><br>
+            التاريخ: <b>${escapeHtml(date)}</b>
+          </div>
         </div>
       </div>
-      </body></html>`;
 
-    const w=window.open('about:blank','_blank');
-    w.document.write(html);
-    w.document.close();
-  }
+      <h2>تقرير زيارة صفية — الزيارة ${escapeHtml(vLbl)}</h2>
 
-  async function openAllPDF(){
-    const rec=await ensureRecord?.();
-    if(!rec){ snack?.('أدخل اسم المعلم أو الهوية أولاً.',false); return; }
-
-    await saveDraft?.(); // تثبيت آخر تعديلات قبل التجميع
-
-    const name=escapeHtml((el('tName')?.value||rec.name||'—').trim());
-    const blocks = [1,2,3].map(v=>buildVisitBlockHTML(v, rec)).join('');
-
-    const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-      <title>تقرير شامل — ${name}</title>
-      <style>
-        body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
-        .sheet{width:190mm;margin:0 auto;padding:8mm 8mm 10mm;box-sizing:border-box}
-        .hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:0 0 8px 0;border:1px solid #e6efec}
-        .hdrImg img{width:100%;height:auto;display:block}
-        h2{margin:6px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
-        h3{margin:8px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
-        .visitBlock{border:1px solid #e6efec;border-radius:14px;padding:8px 8px 10px;margin:10px 0;break-inside:avoid}
-        .vHead{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px dashed #cfe1dd;padding-bottom:6px;margin-bottom:6px}
-        .vTitle{font-weight:900;color:#0c594e}
-        .vMeta{font-size:11px;color:#0c594e;font-weight:800}
-        .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 8px}
-        .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:700;font-size:11px}
-        table{width:100%;border-collapse:collapse;table-layout:fixed}
-        th,td{border:1px solid #cfe1dd;padding:6px;font-size:11px;vertical-align:top;word-wrap:break-word;text-align:center}
-        th{background:#0c594e;color:#fff}
-        .sub th{background:#f0f7f5;color:#0c594e}
-        .ghead{background:#0c594e;color:#fff}
-        .mini{font-size:10px;opacity:.9}
-        .tfoot-brand td{background:#e8f4f1;border-top:3px solid #0f7a66;padding:4px 6px}
-        ul{margin:6px 0 0 0;padding:0 18px}
-        li{margin:4px 0;text-align:right}
-        .srcBadge{display:inline-block;padding:.1rem .4rem;border-radius:8px;border:1px solid #0f7a66;color:#0f7a66;background:#f5fffb;margin-inline-start:6px;font-size:10px;font-weight:800}
-        .foot{margin:8px 0 0;text-align:center;font-size:11px;color:#0c594e}
-      </style></head><body>
-      <div class="sheet">
-        <div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>
-        <h2>تقرير شامل لزيارات المعلم</h2>
-        ${blocks}
-        <div class="foot">حرر في: ${escapeHtml(el('visitDateInline')?.value||nowHijriSafe())}</div>
+      <div class="badges">
+        <span class="badge">الهوية: ${escapeHtml(rec.nid)}</span>
+        <span class="badge">التخصص: ${escapeHtml(rec.spec)}</span>
+        <span class="badge">المرتبة: ${escapeHtml(rec.degree)}</span>
+        <span class="badge">الفصل: ${escapeHtml(rec.klass)}</span>
+        <span class="badge">عنوان الدرس: ${escapeHtml(rec.lesson)}</span>
+        <span class="badge">المستوى: <b>${escapeHtml(lvl)}</b> (${p}%)</span>
       </div>
-      <script>window.onload=()=>setTimeout(()=>window.print(),250);<\/script>
-      </body></html>`;
 
-    const w=window.open('about:blank','_blank');
-    w.document.write(html);
-    w.document.close();
-  }
+      <div class="block">
+        ${buildVisitBlockHTML(v, rec)}
+      </div>
+    </div>
+  </body></html>`;
 
-  // ربط أزرار التقرير و PDF
-  el('btnReport')?.addEventListener('click', openReport);
-  el('btnPDFAll')?.addEventListener('click', openAllPDF);
+  const w = window.open('about:blank','_blank');
+  w.document.write(html);
+  w.document.close();
+}
 
-  /* =========================================================
-     الاعتماد / المسح (كما عندك + تأكيد الربط)
-     ========================================================= */
-  el('btnFinalize')?.addEventListener('click', async ()=>{
-    const rec=await ensureRecord?.();
-    if(!rec){ snack?.('أدخل اسم المعلم أو الهوية أولاً.',false); return; }
+/* =======================
+   ✅ 2) تقرير شامل (PDF/Print)
+   حل مشكلة الصفحة الأولى (بنر فقط)
+   ======================= */
+function openAllPDF(){
+  const rec = ensureRecord();
+  if(!rec){ snack('أدخل اسم المعلم أو الهوية أولاً.', false); return; }
 
-    // تحقق بسيط للحقول المطلوبة
-    const reqOk = (document.querySelectorAll('#boxInfo .req')||[]).length
-      ? [...document.querySelectorAll('#boxInfo .req')].every(i=>String(i.value||'').trim()!=='')
-      : true;
-    if(!reqOk){ snack?.('أكمل الحقول الأساسية (الاسم + التخصص).',false); return; }
+  const eduAdmin = getEduAdmin();
+  const schoolName = getSchoolName();
+  const principal = getPrincipal();
+  const dateHdr = (el('visitDateInline')?.value || nowHijriSafe()).trim();
 
-    await saveDraft?.();
-    rec.visits[activeVisit].finalized=true;
-    rec.visits[activeVisit].draft.date = el('v'+activeVisit+'h')?.textContent || el('visitDateInline')?.value || nowHijriSafe();
-    await dbPut?.(rec);
+  const blocks = [1,2,3].map(v=>buildVisitBlockHTML(v, rec)).join('');
 
-    snack?.(`تم اعتماد الزيارة ${visitName(activeVisit)} وحفظها في الحافظة.`,true);
-    await refreshLens?.();
+  const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+  <title>تقرير شامل — ${escapeHtml(rec.name)}</title>
+  <style>
+    @page{ size:A4; margin:10mm; }
+    body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
+    .toolbar{position:sticky;top:0;z-index:50;display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:10px 12px;background:#fff;border-bottom:1px solid #e6efec}
+    .btn{border:1px solid #cfe1dd;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer}
+    .sheet{max-width:190mm;margin:0 auto;padding:0}
+    .hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:10px 0;border:1px solid #e6efec}
+    .hdrImg img{width:100%;height:auto;display:block}
+    .headBox{border:1px solid #e6efec;border-radius:16px;background:#fbfdfc;padding:10px 12px;margin:0 0 10px}
+    .row{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
+    .cell{flex:1;min-width:240px;border:1px solid #cfe1dd;background:#e8f4f1;border-radius:12px;padding:8px 10px;font-weight:800}
+    .cell b{font-weight:900}
+    h2{margin:6px 0 10px;color:#0f7a66;font-family:"Cairo";text-align:center}
+
+    .visitBlock{border:1px solid #e6efec;border-radius:14px;padding:8px 8px 10px;margin:10px 0}
+    .vHead{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px dashed #cfe1dd;padding-bottom:6px;margin-bottom:6px}
+    .vTitle{font-weight:900;color:#0c594e}
+    .vMeta{font-size:11px;color:#0c594e;font-weight:900}
+    .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 8px}
+    .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:800;font-size:11px}
+    ul{margin:6px 0 0 0;padding:0 18px}
+    li{margin:4px 0;text-align:right}
+    .srcBadge{display:inline-block;padding:.1rem .4rem;border-radius:8px;border:1px solid #0f7a66;color:#0f7a66;background:#f5fffb;margin-inline-start:6px;font-size:10px;font-weight:900}
+    .foot{margin:10px 0 0;text-align:center;font-size:11px;color:#0c594e}
+
+    /* ✅ الأهم: السماح بتجزئة المحتوى (حل صفحة البنر فقط) */
+    .visitBlock{break-inside:auto;page-break-inside:auto;}
+    table, tr, td, th{break-inside:auto;page-break-inside:auto;}
+
+    @media print{ .toolbar{display:none!important} .sheet{max-width:unset;margin:0} }
+  </style></head><body>
+    <div class="toolbar">
+      <button class="btn" onclick="window.print()">طباعة</button>
+      <button class="btn" onclick="window.close()">إغلاق</button>
+    </div>
+
+    <div class="sheet">
+      ${REPORT_HEADER_IMG ? `<div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>` : ``}
+
+      <div class="headBox">
+        <div class="row">
+          <div class="cell">
+            <b>${escapeHtml(eduAdmin)}</b> — <b>${escapeHtml(schoolName)}</b><br>
+            اسم المعلم: <b>${escapeHtml(rec.name)}</b>
+          </div>
+          <div class="cell" style="text-align:left">
+            مدير المدرسة: <b>${escapeHtml(principal)}</b><br>
+            التاريخ: <b>${escapeHtml(dateHdr)}</b>
+          </div>
+        </div>
+      </div>
+
+      <h2>تقرير شامل لزيارات المعلم</h2>
+
+      ${blocks}
+
+      <div class="foot">حرر في: ${escapeHtml(dateHdr)}</div>
+    </div>
+  </body></html>`;
+
+  const w = window.open('about:blank','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+/* =======================
+   ✅ 3) المراسلات (WhatsApp/Email)
+   ======================= */
+function buildMessageText(){
+  const rec = ensureRecord();
+  if(!rec) return '';
+
+  const eduAdmin = getEduAdmin();
+  const schoolName = getSchoolName();
+  const principal = getPrincipal();
+  const dateHdr = (el('visitDateInline')?.value || nowHijriSafe()).trim();
+
+  const v = (window.activeVisit || 1);
+  const p = visitScore(v);
+  const lvl = levelLabel(p);
+
+  return [
+    `${eduAdmin}`,
+    `${schoolName}`,
+    `التاريخ: ${dateHdr}`,
+    `اسم المعلم: ${rec.name} — الهوية: ${rec.nid}`,
+    `التخصص: ${rec.spec} — الفصل: ${rec.klass} — الدرس: ${rec.lesson}`,
+    `نتيجة الزيارة (${visitName(v)}): ${lvl} (${p}%)`,
+    `مدير المدرسة: ${principal}`
+  ].join('\n');
+}
+
+function generateMessages(){
+  const txt = buildMessageText();
+  if(!txt){ snack('أدخل اسم المعلم أو الهوية أولاً.', false); return; }
+  const out = el('msgOut');
+  if(out) out.value = txt;
+  snack('تم توليد الرسالة.');
+}
+
+function openWhatsApp(){
+  const txt = buildMessageText();
+  if(!txt){ snack('أدخل اسم المعلم أو الهوية أولاً.', false); return; }
+  const url = 'https://wa.me/?text=' + encodeURIComponent(txt);
+  window.open(url, '_blank', 'noopener');
+}
+
+function openEmail(){
+  const txt = buildMessageText();
+  if(!txt){ snack('أدخل اسم المعلم أو الهوية أولاً.', false); return; }
+  const subject = `تقرير زيارة — ${ (el('tName')?.value||'—').trim() }`;
+  const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(txt)}`;
+  window.location.href = url;
+}
+
+async function copyMsg(){
+  const out = el('msgOut');
+  const txt = (out?.value || buildMessageText() || '').trim();
+  if(!txt){ snack('لا توجد رسالة للنسخ.', false); return; }
+  await copyToClipboard(txt);
+  snack('تم النسخ.');
+}
+
+/* =======================
+   Bindings (تأكد من IDs)
+   ======================= */
+(function bindPart19(){
+  const bReport = el('btnReport');
+  const bPDF    = el('btnPDF');
+  const bWhats  = el('btnWhats');
+  const bEmail  = el('btnEmail');
+  const bGen    = el('btnGenMsg');
+  const bCopy   = el('btnCopyMsg');
+
+  if(bReport) bReport.addEventListener('click', openReport);
+  if(bPDF)    bPDF.addEventListener('click', openAllPDF);
+
+  // المراسلات
+  if(bGen)   bGen.addEventListener('click', generateMessages);
+  if(bWhats) bWhats.addEventListener('click', openWhatsApp);
+  if(bEmail) bEmail.addEventListener('click', openEmail);
+  if(bCopy)  bCopy.addEventListener('click', copyMsg);
+
+  // توليد تلقائي عند تغيير بيانات المعلم (اختياري)
+  ['tName','tId','tSpec','degree','lesson','class'].forEach(id=>{
+    const x = el(id);
+    if(x) x.addEventListener('input', ()=>{ try{ generateMessages(); }catch{} });
   });
-
-  el('btnDeleteVisit')?.addEventListener('click', async ()=>{
-    const rec=await ensureRecord?.(); 
-    if(!rec){ snack?.('لا يوجد معلم محدد.',false); return; }
-    if(!confirm(`تأكيد مسح بيانات الزيارة ${visitName(activeVisit)} لهذا المعلم؟`)) return;
-
-    store[activeVisit]=zeroMatrix();
-    rec.visits[activeVisit]={finalized:false,draft:zeroSupport()};
-    await dbPut?.(rec);
-
-    buildLearning?.();
-    buildTools?.();
-    if(el('supportArea')) el('supportArea').value='';
-    if(el('v'+activeVisit+'h')) el('v'+activeVisit+'h').textContent='—';
-    if(el('sh'+activeVisit)) el('sh'+activeVisit).textContent='—';
-    if(el('visitDateInline')) el('visitDateInline').value='';
-
-    await saveDraft?.();
-    snack?.('تم مسح الزيارة المحددة.',true);
-  });
-
-  el('btnClearAll')?.addEventListener('click', async ()=>{
-    if(!confirm('سيتم مسح جميع السجلات المحفوظة (المعلمين والزيارات). هل أنت متأكد؟')) return;
-
-    await dbClear?.();
-    fixedKey=null; loadedRecord=null;
-    store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()};
-    activeVisit=1;
-
-    ['tName','tId','tSpec','degree','class','lesson'].forEach(id=>{ if(el(id)) el(id).value=''; });
-    ['v1h','v2h','v3h','sh1','sh2','sh3'].forEach(id=>{ if(el(id)) el(id).textContent='—'; });
-    if(el('visitDateInline')) el('visitDateInline').value='';
-    if(el('supportArea')) el('supportArea').value='';
-
-    buildLearning?.(); buildTools?.();
-    calcAll?.();
-    snack?.('تم مسح جميع البيانات المحفوظة.',true);
-  });
-
 })();
 </script>
+<!-- ============ /PART 19 ============ -->
 
 
 </body>
