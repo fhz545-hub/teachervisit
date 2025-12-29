@@ -1705,28 +1705,99 @@ $('#supportArea').addEventListener('input',dfn(()=>{ saveDraft(); },240));
   el('scrollUp')?.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
   el('scrollDown')?.addEventListener('click',()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
 
-  // زر المنصة (كما هو موجود عندك – لا علاقة له بالتقرير)
-  const LS_HUB_URL = 'hub_url';
-  const getHubUrl = ()=> (localStorage.getItem(LS_PREFIX+LS_HUB_URL) || 'https://fhz545-hub.github.io/').trim();
-  el('fabHub')?.addEventListener('click',()=>window.open(getHubUrl(),'_blank','noopener'));
-
-  // زر الشرح
-  function buildHelp(){
-    const box = el('helpBody'); if(!box) return;
-    const badges = ['الأسماء (استيراد/قالب)','مؤشرات الزيارات','التعليم والتعلّم','الأدوات المساندة','الدعم التلقائي','اعتمد/مسح','التقرير وPDF'];
-    box.innerHTML = `
-      <h3>طريقة الاستخدام</h3>
-      <p>املأ بيانات المعلم ثم قيّم البنود. سيتم تحديث المؤشرات تلقائيًا، ويُولَّد دعم (٤ أسطر) قابل للتعديل.</p>
-      <div>${badges.map(b=>`<span class="help-badge">${b}</span>`).join('')}</div>
-      <div class="help-note"><b>تنبيه:</b> الزيارة الثالثة مخصصة للدعم وتُتاح عند انخفاض مؤشر الزيارة الأولى أو الثانية.</div>
-      <div class="help-privacy"><b>خصوصية:</b> البيانات محفوظة محليًا على جهازك ولا تُرسل لأي جهة.</div>
-    `;
+  <script>
+/* ====== HUB URL (افتراضي جديد) ====== */
+const LS_HUB_URL = 'hub_url';
+function getHubUrl(){
+  return (localStorage.getItem(LS_PREFIX+LS_HUB_URL) || 'https://fhz545-hub.github.io/Teachers/').trim();
+}
+$('#fabHub').onclick=()=>{
+  const url=getHubUrl();
+  window.open(url,'_blank','noopener');
+};
+$('#fabHub').addEventListener('contextmenu',(e)=>{
+  e.preventDefault();
+  const cur=getHubUrl();
+  const u=prompt('ضع رابط منصة التنظيم المدرسي:',cur);
+  if(u!==null){
+    try{ localStorage.setItem(LS_PREFIX+LS_HUB_URL, u.trim()); }catch{}
+    snack('تم حفظ رابط المنصة.');
   }
-  el('fabHelp')?.addEventListener('click',()=>{
-    buildHelp();
-    togglePanel(el('helpPanel'), true);
-  });
-  el('helpClose')?.addEventListener('click',()=>togglePanel(el('helpPanel'),false));
+});
+</script>
+
+
+ <script>
+/* ====== HELP (وافي وشامل) ====== */
+function buildHelp(){
+  const box=$('#helpBody');
+  if(!box) return;
+
+  box.innerHTML = `
+    <h3>نظرة عامة</h3>
+    <p>
+      هذه الاستمارة تُستخدم لتوثيق زيارات المعلم (الأولى/الثانية) و(الثالثة للدعم).
+      تعتمد على تقييم بنود عملية التعليم والتعلّم + الأدوات المساندة + توليد دعم مقترح (٤ أسطر).
+      جميع البيانات تحفظ محليًا على جهازك (IndexedDB/LocalStorage).
+    </p>
+
+    <h3>المعلومات العامة</h3>
+    <ul>
+      <li>املأ: <b>اسم المعلم</b> (يفضل مطابقته لملف الأسماء) و<b>التخصص/المادة</b> وبقية الحقول.</li>
+      <li><b>رقم الهوية</b> (10 أرقام) هو الأفضل لأنه يمنع تكرار السجلات ويضمن الاستدعاء الصحيح.</li>
+      <li>إدارة التعليم/المدرسة محفوظة تلقائيًا كافتراضي ويمكن تعديلها.</li>
+    </ul>
+
+    <h3>عدسة الأسماء (استيراد/قالب)</h3>
+    <ul>
+      <li>زر <b>الأسماء</b> يفتح البحث والقائمة.</li>
+      <li><b>استيراد</b>: يدعم Excel/CSV و PDF النصّي. إذا كان PDF مصوّرًا يجب تحويله إلى نصّي أو Excel.</li>
+      <li>بعد اختيار الملف تظهر نافذة <b>مُعالج الاستيراد</b> لتحديد صف العناوين وربط الأعمدة (الاسم/الهوية/التخصص...)</li>
+      <li><b>قالب</b>: ينشئ قالب جاهز (XLSX أو CSV) بنفس العناوين القياسية.</li>
+    </ul>
+
+    <h3>التقييم (عملية التعليم والتعلّم)</h3>
+    <ul>
+      <li>لكل عنصر اختر: <b>ضعيف/متوسط/متميز</b>.</li>
+      <li>عند الاختيار تُملأ تلقائيًا: <b>جوانب التميّز</b> أو <b>احتياجات التنمية</b> حسب المستوى.</li>
+      <li>المؤشر الخاص بالزيارة يتحدث فورًا، وكذلك المؤشر الشامل أعلى الصفحة.</li>
+    </ul>
+
+    <h3>الأدوات المساندة</h3>
+    <ul>
+      <li>لكل أداة حدّد مستوى التفعيل: <b>غير مُفعل/إلى حد ما/مُفعل</b>.</li>
+      <li>عند عدم التفعيل أو التفعيل الجزئي اكتب السبب (للاستفادة في خطة الدعم).</li>
+      <li>هذه الجزئية تدخل ضمن حساب مؤشر الزيارة.</li>
+    </ul>
+
+    <h3>الدعم المقدّم للمعلم (٤ أسطر)</h3>
+    <ul>
+      <li>يتولد تلقائيًا بناءً على أضعف مجالين + أضعف أداتين.</li>
+      <li>يمكنك تعديل النص يدويًا، وسيحافظ النظام على ٤ أسطر (ويكمل تلقائيًا إن نقصت).</li>
+      <li>يظهر بجانب كل سطر مصدره (مجال/أداة/يدوي) داخل التقارير.</li>
+    </ul>
+
+    <h3>اعتماد / مسح</h3>
+    <ul>
+      <li><b>اعتمد</b>: يحفظ الزيارة الحالية كزيارة معتمدة داخل سجل المعلم.</li>
+      <li><b>مسح زيارة</b>: يمسح بيانات الزيارة الحالية فقط.</li>
+      <li><b>مسح الجميع</b>: يمسح كل السجلات من جهازك.</li>
+    </ul>
+
+    <h3>التقرير و PDF</h3>
+    <ul>
+      <li><b>تقرير</b>: يفتح تقرير الزيارة الحالية.</li>
+      <li><b>بي دي إف</b>: يفتح تقريرًا شاملًا للزيارات الثلاث (1/2/3) من سجل المعلم، ويقترح اسم الملف باسم المعلم عند الحفظ.</li>
+      <li>إذا رغبت PDF: من نافذة الطباعة اختر <b>Save as PDF</b>.</li>
+    </ul>
+
+    <div class="help-note"><b>تنبيه:</b> الزيارة الثالثة مخصصة للدعم وتُتاح عند انخفاض مؤشر الزيارة الأولى أو الثانية.</div>
+    <div class="help-privacy"><b>خصوصية:</b> البيانات لا تُرسل لأي جهة وتبقى محفوظة على جهازك فقط.</div>
+  `;
+}
+$('#fabHelp').onclick=()=>{ buildHelp(); $('#helpPanel').style.display='block'; };
+$('#helpClose').onclick=()=>{ $('#helpPanel').style.display='none'; };
+</script>
 
   // مراسلات
   el('btnComms')?.addEventListener('click',()=>togglePanel(el('commsPanel'),true));
