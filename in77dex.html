@@ -1684,16 +1684,14 @@ $('#tId').addEventListener('input',()=>{
 /* حفظ الدعم عند التعديل اليدوي */
 $('#supportArea').addEventListener('input',dfn(()=>{ saveDraft(); },240));
 </script>
-<!-- ============ PART 19 / 22 ============ -->
+<!-- ============ PART 19 / 20 ============ -->
 <script>
 /* =========================================================
    تفعيل الأزرار + التقارير + PDF (تصحيح نهائي)
    ========================================================= */
 (function(){
-  // تأكيد وجود العناصر قبل ربطها
   const el = (id)=>document.getElementById(id);
 
-  // لوحات: فتح/إغلاق
   function togglePanel(panel, show=null){
     if(!panel) return;
     const isShown = panel.style.display && panel.style.display !== 'none';
@@ -1705,255 +1703,111 @@ $('#supportArea').addEventListener('input',dfn(()=>{ saveDraft(); },240));
   el('scrollUp')?.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
   el('scrollDown')?.addEventListener('click',()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
 
-  <script>
-/* ====== HUB URL (افتراضي جديد) ====== */
-const LS_HUB_URL = 'hub_url';
-function getHubUrl(){
-  return (localStorage.getItem(LS_PREFIX+LS_HUB_URL) || 'https://fhz545-hub.github.io/Teachers/').trim();
-}
-$('#fabHub').onclick=()=>{
-  const url=getHubUrl();
-  window.open(url,'_blank','noopener');
-};
-$('#fabHub').addEventListener('contextmenu',(e)=>{
-  e.preventDefault();
-  const cur=getHubUrl();
-  const u=prompt('https://fhz545-hub.github.io/Teachers:',cur);
-  if(u!==null){
-    try{ localStorage.setItem(LS_PREFIX+LS_HUB_URL, u.trim()); }catch{}
-    snack('تم حفظ رابط المنصة.');
+  /* ====== HUB URL (افتراضي جديد) ====== */
+  const LS_HUB_URL = 'hub_url';
+  function getHubUrl(){
+    return (localStorage.getItem(LS_PREFIX+LS_HUB_URL) || 'https://fhz545-hub.github.io/Teachers/').trim();
   }
-});
-</script>
+  el('fabHub')?.addEventListener('click',()=>{
+    const url=getHubUrl();
+    window.open(url,'_blank','noopener');
+  });
+  el('fabHub')?.addEventListener('contextmenu',(e)=>{
+    e.preventDefault();
+    const cur=getHubUrl();
+    const u=prompt('https://fhz545-hub.github.io/Teachers:',cur);
+    if(u!==null){
+      try{ localStorage.setItem(LS_PREFIX+LS_HUB_URL, u.trim()); }catch{}
+      snack('تم حفظ رابط المنصة.');
+    }
+  });
 
-<style>
-/* ====== HELP UI (Premium + MOE colors) ====== */
-.helpWrap{padding:6px 6px 2px}
-.helpTop{
-  padding:12px;
-  border:1px solid var(--border,#e6efec);
-  border-radius:16px;
-  background:
-    radial-gradient(1200px 260px at 85% 0%, rgba(15,122,102,.12), transparent 55%),
-    linear-gradient(180deg, #ffffff, var(--moe-lite,#e8f4f1));
-  box-shadow:0 10px 26px rgba(12,89,78,.08);
-}
-.helpTop h3{
-  margin:0;
-  font-family:"Cairo","Tajawal";
-  color:var(--moe-dark,#0c594e);
-  font-size:18px;
-  letter-spacing:.2px;
-}
-.helpLead{
-  margin:6px 0 0;
-  color:var(--ink,#123b37);
-  font-weight:700;
-  opacity:.92;
-  line-height:1.9;
-}
-.helpGrid{
-  margin-top:10px;
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:10px;
-}
-@media (max-width:820px){.helpGrid{grid-template-columns:1fr}}
+  /* ====== HELP (مختصر + واضح + جذاب) ====== */
+  function buildHelp(){
+    const box = el('helpBody');
+    if(!box) return;
 
-.helpCard{
-  position:relative;
-  border:1px solid var(--border,#e6efec);
-  background:linear-gradient(180deg,#ffffff,#fbfdfc);
-  border-radius:16px;
-  padding:12px 12px 10px;
-  box-shadow:0 10px 26px rgba(12,89,78,.06);
-  overflow:hidden;
-}
-.helpCard::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:
-    radial-gradient(800px 220px at 10% 0%, rgba(15,122,102,.09), transparent 50%);
-  pointer-events:none;
-}
-.helpCard h4{
-  position:relative;
-  margin:0 0 8px;
-  color:var(--moe-green,#0f7a66);
-  font-family:"Cairo","Tajawal";
-  font-size:15px;
-  font-weight:900;
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.helpCard h4::after{
-  content:"";
-  flex:1;
-  height:1px;
-  background:linear-gradient(90deg, rgba(15,122,102,.35), transparent);
-}
-.helpCard ul{
-  position:relative;
-  margin:0;
-  padding:0 18px;
-}
-.helpCard li{
-  margin:6px 0;
-  color:var(--ink,#123b37);
-  line-height:1.85;
-}
-.helpCard b{
-  color:var(--moe-dark,#0c594e);
-}
-.helpCard li::marker{
-  color:var(--moe-green,#0f7a66);
-  font-weight:900;
-}
+    box.innerHTML = `
+      <div class="helpWrap">
 
-.helpChipRow{
-  position:relative;
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-  margin-top:8px;
-}
-.helpChip{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:5px 8px;
-  border-radius:999px;
-  border:1px solid var(--line,#cfe1dd);
-  background:#fff;
-  color:var(--moe-dark,#0c594e);
-  font-size:12px;
-  font-weight:800;
-  box-shadow:0 6px 16px rgba(0,0,0,.04);
-  white-space:nowrap;
-}
-.helpChip .dot{
-  width:9px;height:9px;border-radius:50%;
-  background:var(--moe-green,#0f7a66);
-  box-shadow:0 0 0 3px rgba(15,122,102,.12);
-}
+        <div class="helpTop">
+          <h3>دليل الاستخدام</h3>
+          <p class="helpLead">استمارة توثيق زيارات المعلم (1/2) و(3 للدعم). الحفظ يتم محليًا على جهازك.</p>
 
-.helpTip{
-  position:relative;
-  margin-top:10px;
-  border:1px dashed var(--line,#cfe1dd);
-  background:linear-gradient(180deg, var(--moe-lite,#e8f4f1), #ffffff);
-  color:var(--moe-dark,#0c594e);
-  padding:10px 10px;
-  border-radius:14px;
-  font-weight:900;
-  font-size:12.8px;
-  line-height:1.8;
-}
-.helpTip b{color:var(--moe-dark,#0c594e)}
-.helpFoot{margin-top:10px}
-.helpPrivacy{
-  border:1px solid var(--border,#e6efec);
-  border-radius:16px;
-  padding:10px 12px;
-  background:
-    linear-gradient(180deg,#ffffff,#fbfdfc);
-  color:var(--ink,#123b37);
-  font-weight:800;
-  box-shadow:0 10px 26px rgba(12,89,78,.05);
-}
-.helpPrivacy b{color:var(--moe-green,#0f7a66)}
-</style>
-
- <script>/* ====== HELP (مختصر + واضح + جذاب) ====== */
-function buildHelp(){
-  const box = $('#helpBody');
-  if(!box) return;
-
-  box.innerHTML = `
-    <div class="helpWrap">
-
-      <div class="helpTop">
-        <h3>دليل الاستخدام</h3>
-        <p class="helpLead">استمارة توثيق زيارات المعلم (1/2) و(3 للدعم). الحفظ يتم محليًا على جهازك.</p>
-
-        <div class="helpChipRow">
-          <span class="helpChip"><span class="dot"></span> حفظ محلي</span>
-          <span class="helpChip"><span class="dot"></span> مؤشرات تلقائية</span>
-          <span class="helpChip"><span class="dot"></span> تقارير PDF</span>
+          <div class="helpChipRow">
+            <span class="helpChip"><span class="dot"></span> حفظ محلي</span>
+            <span class="helpChip"><span class="dot"></span> مؤشرات تلقائية</span>
+            <span class="helpChip"><span class="dot"></span> تقارير PDF</span>
+          </div>
         </div>
+
+        <div class="helpGrid">
+
+          <section class="helpCard">
+            <h4>١) البداية السريعة</h4>
+            <ul>
+              <li>أدخل <b>اسم المعلم</b> ويفضل <b>رقم الهوية</b> (10 أرقام).</li>
+              <li>اختر الزيارة: <b>الأولى / الثانية / الثالثة (دعم)</b>.</li>
+              <li>قيّم البنود → سيتحدث <b>المؤشر</b> تلقائيًا.</li>
+            </ul>
+          </section>
+
+          <section class="helpCard">
+            <h4>٢) عدسة الأسماء</h4>
+            <ul>
+              <li><b>الأسماء</b>: بحث سريع واختيار المعلم.</li>
+              <li><b>استيراد</b>: يدعم Excel/CSV وPDF النصّي.</li>
+              <li>إذا كان PDF مصوّرًا: حوّله إلى Excel/نصّي.</li>
+            </ul>
+          </section>
+
+          <section class="helpCard">
+            <h4>٣) التقييم</h4>
+            <ul>
+              <li>اختر: <b>ضعيف / متوسط / متميز</b> لكل عنصر.</li>
+              <li>يتولد تلقائيًا: <b>جوانب التميّز</b> و<b>احتياجات التطوير</b>.</li>
+              <li>يُحدَّث <b>مؤشر الزيارة</b> و<b>المؤشر الشامل</b> فورًا.</li>
+            </ul>
+          </section>
+
+          <section class="helpCard">
+            <h4>٤) الأدوات المساندة</h4>
+            <ul>
+              <li>حدد: <b>غير مُفعل / إلى حد ما / مُفعل</b>.</li>
+              <li>اكتب سبب عدم التفعيل للاستفادة في خطة الدعم.</li>
+            </ul>
+          </section>
+
+          <section class="helpCard">
+            <h4>٥) الدعم (٤ أسطر)</h4>
+            <ul>
+              <li>يتولد تلقائيًا وفق <b>أضعف مجالين</b> و<b>أضعف أداتين</b>.</li>
+              <li>يمكن التعديل يدويًا مع الحفاظ على <b>٤ أسطر</b>.</li>
+            </ul>
+            <div class="helpTip">ملاحظة: الزيارة الثالثة مخصصة للدعم عند انخفاض نتائج (1 أو 2).</div>
+          </section>
+
+          <section class="helpCard">
+            <h4>٦) الاعتماد والتقارير</h4>
+            <ul>
+              <li><b>اعتمد</b>: يحفظ الزيارة ضمن سجل المعلم.</li>
+              <li><b>تقرير</b>: تقرير الزيارة الحالية.</li>
+              <li><b>PDF</b>: تقرير شامل للزيارات الثلاث مع اسم المعلم.</li>
+            </ul>
+          </section>
+
+        </div>
+
+        <div class="helpFoot">
+          <div class="helpPrivacy"><b>خصوصية:</b> لا يتم إرسال أي بيانات—كل شيء محفوظ محليًا على جهازك.</div>
+        </div>
+
       </div>
+    `;
+  }
 
-      <div class="helpGrid">
-
-        <section class="helpCard">
-          <h4>١) البداية السريعة</h4>
-          <ul>
-            <li>أدخل <b>اسم المعلم</b> ويفضل <b>رقم الهوية</b> (10 أرقام).</li>
-            <li>اختر الزيارة: <b>الأولى / الثانية / الثالثة (دعم)</b>.</li>
-            <li>قيّم البنود → سيتحدث <b>المؤشر</b> تلقائيًا.</li>
-          </ul>
-        </section>
-
-        <section class="helpCard">
-          <h4>٢) عدسة الأسماء</h4>
-          <ul>
-            <li><b>الأسماء</b>: بحث سريع واختيار المعلم.</li>
-            <li><b>استيراد</b>: يدعم Excel/CSV وPDF النصّي.</li>
-            <li>إذا كان PDF مصوّرًا: حوّله إلى Excel/نصّي.</li>
-          </ul>
-        </section>
-
-        <section class="helpCard">
-          <h4>٣) التقييم</h4>
-          <ul>
-            <li>اختر: <b>ضعيف / متوسط / متميز</b> لكل عنصر.</li>
-            <li>يتولد تلقائيًا: <b>جوانب التميّز</b> و<b>احتياجات التطوير</b>.</li>
-            <li>يُحدَّث <b>مؤشر الزيارة</b> و<b>المؤشر الشامل</b> فورًا.</li>
-          </ul>
-        </section>
-
-        <section class="helpCard">
-          <h4>٤) الأدوات المساندة</h4>
-          <ul>
-            <li>حدد: <b>غير مُفعل / إلى حد ما / مُفعل</b>.</li>
-            <li>اكتب سبب عدم التفعيل للاستفادة في خطة الدعم.</li>
-          </ul>
-        </section>
-
-        <section class="helpCard">
-          <h4>٥) الدعم (٤ أسطر)</h4>
-          <ul>
-            <li>يتولد تلقائيًا وفق <b>أضعف مجالين</b> و<b>أضعف أداتين</b>.</li>
-            <li>يمكن التعديل يدويًا مع الحفاظ على <b>٤ أسطر</b>.</li>
-          </ul>
-          <div class="helpTip">ملاحظة: الزيارة الثالثة مخصصة للدعم عند انخفاض نتائج (1 أو 2).</div>
-        </section>
-
-        <section class="helpCard">
-          <h4>٦) الاعتماد والتقارير</h4>
-          <ul>
-            <li><b>اعتمد</b>: يحفظ الزيارة ضمن سجل المعلم.</li>
-            <li><b>تقرير</b>: تقرير الزيارة الحالية.</li>
-            <li><b>PDF</b>: تقرير شامل للزيارات الثلاث مع اسم المعلم.</li>
-          </ul>
-        </section>
-
-      </div>
-
-      <div class="helpFoot">
-        <div class="helpPrivacy"><b>خصوصية:</b> لا يتم إرسال أي بيانات—كل شيء محفوظ محليًا على جهازك.</div>
-      </div>
-
-    </div>
-  `;
-}
-
-$('#fabHelp').onclick = ()=>{ buildHelp(); $('#helpPanel').style.display='block'; };
-$('#helpClose').onclick = ()=>{ $('#helpPanel').style.display='none'; };
-
-</script>
+  el('fabHelp')?.addEventListener('click',()=>{ buildHelp(); el('helpPanel').style.display='block'; });
+  el('helpClose')?.addEventListener('click',()=>{ el('helpPanel').style.display='none'; });
 
   // مراسلات
   el('btnComms')?.addEventListener('click',()=>togglePanel(el('commsPanel'),true));
@@ -2019,171 +1873,6 @@ $('#helpClose').onclick = ()=>{ $('#helpPanel').style.display='none'; };
   el('apClose')?.addEventListener('click',()=>togglePanel(el('approvedPanel'),false));
 
   // ======== التقارير (تقرير + PDF شامل) ========
-  const REPORT_HEADER_IMG = 'logo2.png';
-
-  function escapeHtml(s){
-    return String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
-  }
-  function visitName(v){ return v===1?'الأولى':(v===2?'الثانية':'الثالثة (دعم)'); }
-
-  function openReport(){
-    const name=el('tName').value.trim()||'—';
-    const nid=el('tId').value||'—';
-    const spec=el('tSpec').value||'—';
-    const degree=el('degree').value||'—';
-    const lesson=el('lesson').value||'—';
-    const klass=el('class').value||'—';
-    const vLbl=activeVisit===1?'الأولى':activeVisit===2?'الثانية':'الثالثة (دعم)';
-    const p=visitScore(activeVisit), lvl=levelLabel(p);
-    const date=(el('v'+activeVisit+'h')?.textContent)||el('visitDateInline')?.value||'—';
-    const principal=(localStorage.getItem(LS_PREFIX+'principal')||el('pr1Name')?.textContent||'—').trim();
-
-    // learning
-    let learnHTML='';
-    fields.forEach((f,fi)=>{
-      let rows='';
-      f.items.forEach((pair,ii)=>{
-        const [label]=pair;
-        const v=store[activeVisit][fi][ii];
-        const lvlCell=v===3?'متميز':(v===2?'متوسط':(v===1?'ضعيف':'—'));
-        const ok=learnBank[f.name][label].ok, need=learnBank[f.name][label].need;
-        const okCell=(v===3?ok:(v===2?'تقدّم يحتاج تثبيتًا.':'—'));
-        const needCell=(v>0 && v<=2?need:'—');
-        rows+=`<tr><td>${escapeHtml(label)}</td><td><b>${lvlCell}</b></td><td>${escapeHtml(okCell)}</td><td>${escapeHtml(needCell)}</td></tr>`;
-      });
-      learnHTML+=`<tr><th colspan="4" class="ghead">${escapeHtml(f.name)}</th></tr>${rows}`;
-    });
-
-    // tools
-    const states=getToolsStateFromUI(), reasons=getToolReasonsFromUI();
-    let toolsHTML='';
-    toolsData.forEach((t,i)=>{
-      const s=states[i];
-      const lv=s===2?'مُفعل':(s===1?'إلى حد ما':(s===0?'غير مُفعل':'—'));
-      toolsHTML+=`<tr><td>${i+1}</td><td>${escapeHtml(t.title)}<div class="mini">${escapeHtml(t.proof||'')}</div></td><td><b>${escapeHtml(lv)}</b></td><td>${escapeHtml(reasons[i]||'—')}</td></tr>`;
-    });
-
-    // support
-    const det=ensureSupport();
-    const suppHTML=det.slice(0,4).map(o=>`<li>□ ${escapeHtml(o.text)} <span class="srcBadge">${escapeHtml(o.src||'')}</span></li>`).join('');
-
-    const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-      <title>تقرير زيارة — ${escapeHtml(name)}</title>
-      <style>
-        body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
-        .sheet{width:185mm;margin:0 auto;padding:10mm 10mm 12mm;box-sizing:border-box}
-        .hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:0 0 8px 0;border:1px solid #e6efec}
-        .hdrImg img{width:100%;height:auto;display:block}
-        h3{margin:8px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
-        .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px}
-        .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:700;font-size:11px}
-        table{width:100%;border-collapse:collapse;table-layout:fixed}
-        th,td{border:1px solid #cfe1dd;padding:6px;font-size:11px;vertical-align:top;word-wrap:break-word;text-align:center}
-        th{background:#0c594e;color:#fff}
-        .sub th{background:#f0f7f5;color:#0c594e}
-        .ghead{background:#0c594e;color:#fff}
-        .mini{font-size:10px;opacity:.9}
-        .tfoot-brand td{background:#e8f4f1;border-top:3px solid #0f7a66;padding:4px 6px}
-        ul{margin:6px 0 0 0;padding:0 18px}
-        li{margin:4px 0;text-align:right}
-        .srcBadge{display:inline-block;padding:.1rem .4rem;border-radius:8px;border:1px solid #0f7a66;color:#0f7a66;background:#f5fffb;margin-inline-start:6px;font-size:10px;font-weight:800}
-        .signs-inline{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap}
-        .signItem{border:1px solid #cfe1dd;padding:6px 10px;border-radius:10px;min-width:48%;text-align:center;font-size:11px}
-      </style></head><body>
-      <div class="sheet">
-        <div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>
-        <div class="badges">
-          <span class="badge">اسم المعلم: <b>${escapeHtml(name)}</b></span>
-          <span class="badge">الهوية: ${escapeHtml(nid)}</span>
-          <span class="badge">التخصص: ${escapeHtml(spec)}</span>
-          <span class="badge">المرتبة: ${escapeHtml(degree)}</span>
-          <span class="badge">عنوان الدرس: ${escapeHtml(lesson)}</span>
-          <span class="badge">الفصل: ${escapeHtml(klass)}</span>
-          <span class="badge">الزيارة: ${escapeHtml(vLbl)} — المستوى: <b>${escapeHtml(lvl)}</b></span>
-          <span class="badge">تاريخ الزيارة: ${escapeHtml(date)}</span>
-        </div>
-
-        <h3>عملية التعليم والتعلّم</h3>
-        <table>
-          <thead class="sub"><tr><th>العنصر</th><th>المستوى</th><th>جوانب التميّز</th><th>الاحتياجات</th></tr></thead>
-          <tbody>${learnHTML}</tbody>
-          <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
-        </table>
-
-        <h3>الأدوات المساندة</h3>
-        <table>
-          <thead class="sub"><tr><th>م</th><th>الأداة</th><th>التفعيل</th><th>أسباب عدم التفعيل</th></tr></thead>
-          <tbody>${toolsHTML}</tbody>
-          <tfoot class="tfoot-brand"><tr><td colspan="4"></td></tr></tfoot>
-        </table>
-
-        <h3>الدعم المقدّم للمعلم</h3>
-        <ul>${suppHTML || '<li>—</li>'}</ul>
-
-        <div class="signs-inline">
-          <div class="signItem">اسم المعلم وتوقيعه: <b>${escapeHtml(name)}</b></div>
-          <div class="signItem">اسم المدير وتوقيعه: <b>${escapeHtml(principal)}</b></div>
-        </div>
-      </div>
-      </body></html>`;
-
-    const w=window.open('about:blank','_blank');
-    w.document.write(html);
-    w.document.close();
-  }
-
-  async function openAllPDF(){
-    const rec=await ensureRecord();
-    if(!rec){ snack('أدخل اسم المعلم أو الهوية أولاً.',false); return; }
-    await saveDraft();
-
-    const name=escapeHtml(el('tName').value.trim()||rec.name||'—');
-    const blocks = [1,2,3].map(v=>buildVisitBlockHTML(v, rec)).join('');
-
-    const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-      <title>تقرير شامل — ${name}</title>
-      <style>
-        body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
-        .sheet{width:190mm;margin:0 auto;padding:8mm 8mm 10mm;box-sizing:border-box}
-        .hdrImg{width:100%;border-radius:18px;overflow:hidden;margin:0 0 8px 0;border:1px solid #e6efec}
-        .hdrImg img{width:100%;height:auto;display:block}
-        h2{margin:6px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
-        h3{margin:8px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
-        .visitBlock{border:1px solid #e6efec;border-radius:14px;padding:8px 8px 10px;margin:10px 0;break-inside:avoid}
-        .vHead{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px dashed #cfe1dd;padding-bottom:6px;margin-bottom:6px}
-        .vTitle{font-weight:900;color:#0c594e}
-        .vMeta{font-size:11px;color:#0c594e;font-weight:800}
-        .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 8px}
-        .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:700;font-size:11px}
-        table{width:100%;border-collapse:collapse;table-layout:fixed}
-        th,td{border:1px solid #cfe1dd;padding:6px;font-size:11px;vertical-align:top;word-wrap:break-word;text-align:center}
-        th{background:#0c594e;color:#fff}
-        .sub th{background:#f0f7f5;color:#0c594e}
-        .ghead{background:#0c594e;color:#fff}
-        .mini{font-size:10px;opacity:.9}
-        .tfoot-brand td{background:#e8f4f1;border-top:3px solid #0f7a66;padding:4px 6px}
-        ul{margin:6px 0 0 0;padding:0 18px}
-        li{margin:4px 0;text-align:right}
-        .srcBadge{display:inline-block;padding:.1rem .4rem;border-radius:8px;border:1px solid #0f7a66;color:#0f7a66;background:#f5fffb;margin-inline-start:6px;font-size:10px;font-weight:800}
-        .signs-inline{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap}
-        .signItem{border:1px solid #cfe1dd;padding:6px 10px;border-radius:10px;min-width:48%;text-align:center;font-size:11px}
-        .foot{margin:8px 0 0;text-align:center;font-size:11px;color:#0c594e}
-      </style></head><body>
-      <div class="sheet">
-        <div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>
-        <h2>تقرير شامل لزيارات المعلم</h2>
-        ${blocks}
-        <div class="foot">حرر في: ${escapeHtml(el('visitDateInline')?.value||hijriNow())}</div>
-      </div>
-      <script>window.onload=()=>setTimeout(()=>window.print(),250);<\/script>
-      </body></html>`;
-
-    const w=window.open('about:blank','_blank');
-    w.document.write(html);
-    w.document.close();
-  }
-
-  // ربط الأزرار
   el('btnReport')?.addEventListener('click', openReport);
   el('btnPDFAll')?.addEventListener('click', openAllPDF);
 
@@ -2192,7 +1881,6 @@ $('#helpClose').onclick = ()=>{ $('#helpPanel').style.display='none'; };
     const rec=await ensureRecord();
     if(!rec){ snack('أدخل اسم المعلم أو الهوية أولاً.',false); return; }
 
-    // تحقق بسيط للحقول المطلوبة
     const reqOk = (document.querySelectorAll('#boxInfo .req')||[]).length
       ? [...document.querySelectorAll('#boxInfo .req')].every(i=>String(i.value||'').trim()!=='')
       : true;
@@ -2245,6 +1933,7 @@ $('#helpClose').onclick = ()=>{ $('#helpPanel').style.display='none'; };
 
 })();
 </script>
+
 
 </body>
 </html>
