@@ -1684,174 +1684,133 @@ $('#tId').addEventListener('input',()=>{
 /* حفظ الدعم عند التعديل اليدوي */
 $('#supportArea').addEventListener('input',dfn(()=>{ saveDraft(); },240));
 </script>
-<!-- ============ PART 19 / 20 (REWIRED + FIXED) ============ -->
+<!-- ============ PART 19 / 20 (FIXED — REPORT + PDF) ============ -->
 <script>
 /* =========================================================
-   PART 19 (FINAL) — ربط خوارزمي صحيح للأزرار:
-   - تقرير الزيارة الحالية (Popup + Print)
-   - تقرير شامل (Popup + Print) + حل "صفحة البنر فقط"
-   - المراسلات: توليد/نسخ/واتساب/إيميل
-   - تحديث لوحة الشرح (Help) بأسلوب مهني تربوي
+   PART 19 (FIXED) — ربط خوارزمي صحيح:
+   - btnReport: تقرير الزيارة الحالية (نافذة + طباعة)
+   - btnPDFAll: تقرير شامل للزيارات (نافذة + طباعة)
+   - إصلاح مشكلة "تطلع صفحة البنر فقط" عند الطباعة
    ========================================================= */
-
 (function(){
   "use strict";
 
-  /* ====== Safe helpers (بدون كسر دوالك الحالية) ====== */
-  const R19 = {};
-  const R$ = (id)=>document.getElementById(id);
+  const $ = (id)=>document.getElementById(id);
 
-  function R19_escapeHtml(s){
+  /* ------- helpers ------- */
+  function esc(s){
     return String(s ?? '').replace(/[&<>"']/g, m => ({
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[m]));
   }
 
-  async function R19_copy(text){
-    const t = String(text||'');
-    if(!t.trim()) return;
-    if(navigator.clipboard?.writeText){
-      try{ await navigator.clipboard.writeText(t); return; }catch{}
-    }
-    const ta=document.createElement('textarea');
-    ta.value=t; ta.style.position='fixed'; ta.style.left='-9999px';
-    document.body.appendChild(ta); ta.select();
-    try{ document.execCommand('copy'); }catch{}
-    ta.remove();
-  }
-
-  function R19_snack(msg, ok=true){
-    // استخدم Snackbar الأصلي إن وُجد
+  function hijri(){
+    try{ if(typeof window.hijriNow === 'function') return window.hijriNow(); }catch{}
     try{
-      if(typeof window.snack === 'function'){ window.snack(msg, ok); return; }
-    }catch{}
-    // fallback خفيف
-    if(!ok) alert(msg);
-    else console.log(msg);
+      return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',
+        {weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date());
+    }catch{
+      return new Date().toLocaleDateString('ar-SA') || '—';
+    }
   }
 
-  /* ====== قراءة بيانات الصفحة (خوارزميًا) ====== */
-  function R19_getTop(){
-    const edu = (R$('h-dir')?.value || 'الإدارة العامة للتعليم بالمنطقة الشرقية').trim();
-    const sch = (R$('h-school')?.value || 'ثانوية اليعقوبي بالخبر').trim();
-    return { edu, sch };
+  function getTop(){
+    return {
+      edu: ( $('h-dir')?.value || 'الإدارة العامة للتعليم بالمنطقة الشرقية' ).trim(),
+      sch: ( $('h-school')?.value || 'ثانوية اليعقوبي بالخبر' ).trim()
+    };
   }
-  function R19_getNames(){
-    const teacher = (R$('tName')?.value || '').trim();
-    const nid     = (R$('tId')?.value || '').trim();
-    const spec    = (R$('tSpec')?.value || '').trim();
-    const degree  = (R$('degree')?.value || '').trim();
-    const klass   = (R$('class')?.value || '').trim();
-    const lesson  = (R$('lesson')?.value || '').trim();
+
+  function getCore(){
+    const teacher = ($('tName')?.value || '').trim();
+    const nid     = ($('tId')?.value || '').trim();
+    const spec    = ($('tSpec')?.value || '').trim();
+    const degree  = ($('degree')?.value || '').trim();
+    const klass   = ($('class')?.value || '').trim();
+    const lesson  = ($('lesson')?.value || '').trim();
     const principal =
       (localStorage.getItem((window.LS_PREFIX||'yaqfb_')+'principal') || 'فهد حامد الزهراني').trim();
-    return { teacher, nid, spec, degree, klass, lesson, principal };
+    return { teacher,nid,spec,degree,klass,lesson,principal };
   }
 
-  function R19_hijriDate(){
-    // استخدم دالتك الحالية إن وجدت
-    try{
-      if(typeof window.hijriNow === 'function') return window.hijriNow();
-    }catch{}
-    try{
-      return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',{day:'numeric',month:'long',year:'numeric'}).format(new Date());
-    }catch{
-      return new Date().toLocaleDateString('ar-SA');
-    }
+  function visitName(v){
+    return v===1?'الأولى':(v===2?'الثانية':(v===3?'الثالثة (دعم)':'#'+v));
   }
 
-  function R19_visitName(v){
-    return (v===1?'الأولى':(v===2?'الثانية':(v===3?'الثالثة (دعم)':'#'+v)));
-  }
-
-  function R19_levelLabel(p){
-    // استخدم دالتك الحالية إن وجدت
-    try{
-      if(typeof window.levelLabel === 'function') return window.levelLabel(p);
-    }catch{}
+  function levelLbl(p){
+    try{ if(typeof window.levelLabel === 'function') return window.levelLabel(p); }catch{}
     if(p>=80) return 'متميز';
     if(p>=50) return 'متوسط';
     if(p>0) return 'ضعيف';
     return '—';
   }
 
-  function R19_visitScore(v){
-    // استخدم محسّبك الحالي
-    try{
-      if(typeof window.visitScore === 'function') return window.visitScore(v);
-    }catch{}
+  function score(v){
+    try{ if(typeof window.visitScore === 'function') return window.visitScore(v); }catch{}
     return 0;
   }
 
-  function R19_getVisitDate(v){
-    const a = (R$('v'+v+'h')?.textContent || '').trim();
-    const b = (R$('visitDateInline')?.value || '').trim();
-    return (a && a !== '—') ? a : (b || R19_hijriDate());
+  function visitDate(v){
+    const a = ($('v'+v+'h')?.textContent || '').trim();
+    const b = ($('visitDateInline')?.value || '').trim();
+    return (a && a !== '—') ? a : (b || hijri());
   }
 
-  /* ====== تلخيص "عملية التعليم والتعلّم" من المصفوفة store/fields ====== */
-  function R19_buildLearningSummaryHTML(v){
-    const has = (window.fields && window.store && window.store[v]);
-    if(!has) return `<div class="note">— لم يتم العثور على بيانات التقييم (التعليم والتعلّم).</div>`;
-
-    const out = [];
-    window.fields.forEach((domain, fi)=>{
-      const rows = [];
-      (domain.items||[]).forEach((pair, ii)=>{
+  /* ------- summaries ------- */
+  function learningSummaryHTML(v){
+    if(!(window.fields && window.store && window.store[v])) return `<div class="note">—</div>`;
+    const out=[];
+    window.fields.forEach((dom,fi)=>{
+      const li=[];
+      (dom.items||[]).forEach((pair,ii)=>{
         const title = pair[0];
         const val = (window.store[v]?.[fi]?.[ii]) || 0;
         if(val>0){
           const lbl = (val===3?'متميز':(val===2?'متوسط':'ضعيف'));
-          rows.push(`<li><b>${R19_escapeHtml(title)}</b> — <span class="pill">${lbl}</span></li>`);
+          li.push(`<li><b>${esc(title)}</b> — <span class="pill">${lbl}</span></li>`);
         }
       });
-      if(rows.length){
+      if(li.length){
         out.push(`
-          <div class="sec">
-            <div class="secT">${R19_escapeHtml(domain.name)}</div>
-            <ul class="ul">${rows.join('')}</ul>
+          <div class="secIn">
+            <div class="secT2">${esc(dom.name)}</div>
+            <ul class="ul">${li.join('')}</ul>
           </div>
         `);
       }
     });
-
-    return out.length ? out.join('') : `<div class="note">— لم يتم تحديد مستويات لعناصر التعليم والتعلّم بعد.</div>`;
+    return out.length? out.join('') : `<div class="note">— لم يتم تحديد مستويات بعد.</div>`;
   }
 
-  /* ====== تلخيص "الأدوات المساندة" من واجهة الصفحة الحالية ====== */
-  function R19_buildToolsSummaryHTML(v){
-    // نقرأ الحالة من UI (الأدوات) لأن المستخدم يحددها لكل زيارة
-    if(typeof window.getToolsStateFromUI !== 'function' || !window.toolsData){
-      return `<div class="note">— لم يتم العثور على بيانات الأدوات المساندة.</div>`;
-    }
+  function toolsSummaryHTML(v){
+    if(!window.toolsData) return `<div class="note">—</div>`;
 
-    // نحتاج تحميل سجل الزيارة المحددة لو كانت أدواتها محفوظة
-    let toolsStates = [];
-    let toolReasons = [];
+    let states=[], reasons=[];
     try{
       const rec = window.loadedRecord;
-      if(rec?.visits?.[v]?.draft?.tools) toolsStates = rec.visits[v].draft.tools;
-      if(rec?.visits?.[v]?.draft?.reasons) toolReasons = rec.visits[v].draft.reasons;
+      if(rec?.visits?.[v]?.draft?.tools)   states  = rec.visits[v].draft.tools || [];
+      if(rec?.visits?.[v]?.draft?.reasons) reasons = rec.visits[v].draft.reasons || [];
     }catch{}
 
-    // fallback: من UI الحالي (قد لا يطابق زيارة أخرى)
-    if(!toolsStates.length) toolsStates = window.getToolsStateFromUI() || [];
-    if(!toolReasons.length && typeof window.getToolReasonsFromUI === 'function'){
-      toolReasons = window.getToolReasonsFromUI() || [];
+    // fallback: UI الحالي
+    if(!states.length && typeof window.getToolsStateFromUI === 'function'){
+      states = window.getToolsStateFromUI() || [];
+    }
+    if(!reasons.length && typeof window.getToolReasonsFromUI === 'function'){
+      reasons = window.getToolReasonsFromUI() || [];
     }
 
     const rows = window.toolsData.map((t,i)=>{
-      const s = toolsStates[i];
+      const s = states[i];
       const status = (s===2?'مُفعل':(s===1?'إلى حد ما':(s===0?'غير مُفعل':'غير محدد')));
-      const why = (toolReasons[i]||'').trim();
+      const why = (reasons[i]||'').trim();
       return `
         <tr>
           <td>${i+1}</td>
-          <td style="text-align:right">${R19_escapeHtml(t.title||'—')}</td>
-          <td><span class="pill">${R19_escapeHtml(status)}</span></td>
-          <td style="text-align:right">${R19_escapeHtml(why || '—')}</td>
-        </tr>
-      `;
+          <td style="text-align:right">${esc(t.title||'—')}</td>
+          <td><span class="pill">${esc(status)}</span></td>
+          <td style="text-align:right">${esc(why || '—')}</td>
+        </tr>`;
     }).join('');
 
     return `
@@ -1863,49 +1822,43 @@ $('#supportArea').addEventListener('input',dfn(()=>{ saveDraft(); },240));
             <tbody>${rows}</tbody>
           </table>
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
-  /* ====== دعم المعلم (٤ أسطر) من السجل للزيارة v ====== */
-  function R19_getSupportLinesHTML(v){
-    let lines = [];
+  function supportHTML(v){
+    let lines=[];
     try{
       const rec = window.loadedRecord;
       const det = rec?.visits?.[v]?.draft?.supportDetailed || [];
-      if(det && det.length){
-        lines = det.slice(0,4).map(x=>`<li>□ ${R19_escapeHtml(x.text||'—')} <span class="src">${R19_escapeHtml(x.src||'')}</span></li>`);
-      }
+      if(det?.length) lines = det.slice(0,4).map(x=>x?.text).filter(Boolean);
     }catch{}
-
-    // fallback: من textarea الحالي
     if(!lines.length){
-      const raw = (R$('supportArea')?.value || '').split('\n').map(s=>s.trim()).filter(Boolean).slice(0,4);
-      lines = raw.map(t=>`<li>□ ${R19_escapeHtml(t)}</li>`);
+      lines = (($('supportArea')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean)).slice(0,4);
     }
-
-    return lines.length ? `<ul class="ul">${lines.join('')}</ul>` : `<div class="note">—</div>`;
+    if(!lines.length) return `<div class="note">—</div>`;
+    return `<ul class="ul">${lines.map(t=>`<li>□ ${esc(t)}</li>`).join('')}</ul>`;
   }
 
-  /* ====== قالب التقرير (Visit / All) ====== */
-  function R19_baseCSS(){
+  /* ------- report css (حل البنر فقط) ------- */
+  function reportCSS(){
     return `
       @page{ size:A4; margin:10mm; }
       body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
       .toolbar{position:sticky;top:0;z-index:50;display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:10px 12px;background:#fff;border-bottom:1px solid #e6efec}
       .btn{border:1px solid #cfe1dd;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer}
-      .sheet{max-width:190mm;margin:0 auto}
-      .topline{margin:10px 0 2px;text-align:center;font-weight:900;color:#0c594e;font-size:12px;letter-spacing:.2px}
+      .sheet{max-width:190mm;margin:0 auto;padding:0 2mm}
+      .topline{margin:10px 0 2px;text-align:center;font-weight:900;color:#0c594e;font-size:12px}
       h1{margin:6px 0 10px;text-align:center;color:#0f7a66;font-family:"Cairo";font-size:20px}
       .metaBadges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 10px}
       .badge{border:1px solid #e6efec;background:#fbfdfc;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:900;font-size:11px}
-      .sec{border:1px solid #e6efec;border-radius:14px;background:#fbfdfc;padding:10px 10px;margin:10px 0}
+      .sec{border:1px solid #e6efec;border-radius:14px;background:#fbfdfc;padding:10px;margin:10px 0}
       .secT{font-weight:900;color:#0c594e;margin:0 0 6px}
+      .secIn{border:1px dashed #cfe1dd;border-radius:12px;background:#fff;padding:8px;margin:8px 0}
+      .secT2{font-weight:900;color:#0f7a66;margin:0 0 4px;font-size:13px}
       .pill{display:inline-flex;align-items:center;justify-content:center;border:1px solid #cfe1dd;background:#e8f4f1;color:#0c594e;border-radius:999px;padding:2px 8px;font-weight:900;font-size:11px}
       .ul{margin:6px 0 0;padding:0 18px}
       .ul li{margin:4px 0;line-height:1.8}
       .note{color:#5d737a;font-weight:800;font-size:12px}
-      .src{display:inline-block;margin-inline-start:6px;font-size:10px;font-weight:900;color:#0f7a66;border:1px solid #0f7a66;border-radius:8px;padding:.1rem .35rem;background:#f5fffb}
       .tblWrap{overflow:auto;border:1px solid #e6efec;border-radius:12px}
       .miniTbl{width:100%;border-collapse:collapse;table-layout:fixed}
       .miniTbl th,.miniTbl td{border:1px solid #cfe1dd;padding:6px;text-align:center;font-size:11px;background:#fff;vertical-align:top;word-wrap:break-word}
@@ -1917,342 +1870,201 @@ $('#supportArea').addEventListener('input',dfn(()=>{ saveDraft(); },240));
       .sigName{font-weight:900}
       .muted{color:#5d737a;font-weight:800;font-size:11px;text-align:center;margin:8px 0 2px}
 
-      /* ✅ مهم لحل صفحة البنر فقط */
-      .sec, .tblWrap, .miniTbl, tr, td, th{break-inside:auto;page-break-inside:auto;}
-      @media print{ .toolbar{display:none!important} .sheet{max-width:unset;margin:0} }
-    `;
+      /* ✅ إصلاح عملي: منع طباعة صفحة واحدة فاضية/البنر فقط */
+      html,body{height:auto}
+      .sheet{break-after:auto}
+      .sec,.tblWrap,table,tr,td,th{break-inside:auto;page-break-inside:auto;}
+
+      @media print{
+        .toolbar{display:none!important}
+        .sheet{max-width:unset;margin:0;padding:0}
+      }`;
   }
 
-  function R19_openWindow(html){
+  function openWin(html){
     const w = window.open('about:blank','_blank');
-    if(!w){ R19_snack('تعذر فتح نافذة التقرير (تحقق من مانع النوافذ المنبثقة).', false); return null; }
+    if(!w){
+      try{ if(window.snack) window.snack('تعذر فتح نافذة التقرير (تحقق من مانع النوافذ).',false); }catch{}
+      return null;
+    }
     w.document.open();
     w.document.write(html);
     w.document.close();
     return w;
   }
 
-  function R19_buildFooterSign(teacher, principal){
+  function footerSign(teacher, principal){
     return `
       <div class="footerSign">
         <div class="sigBox">
           <div class="sigT">اسم المعلم</div>
-          <div class="sigName">${R19_escapeHtml(teacher||'—')}</div>
+          <div class="sigName">${esc(teacher||'—')}</div>
           <div class="sigLine"></div>
           <div class="muted">توقيع المعلم</div>
         </div>
         <div class="sigBox" style="text-align:left">
           <div class="sigT">مدير المدرسة</div>
-          <div class="sigName">${R19_escapeHtml(principal||'—')}</div>
+          <div class="sigName">${esc(principal||'—')}</div>
           <div class="sigLine"></div>
           <div class="muted">توقيع مدير المدرسة</div>
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
-  /* ====== تقرير زيارة واحدة ====== */
-  R19.openVisitReport = function(){
+  /* ------- visit report ------- */
+  function openVisitReport(){
     const v = (window.activeVisit || 1);
-    const top = R19_getTop();
-    const n = R19_getNames();
+    const top = getTop();
+    const n = getCore();
 
     if(!n.teacher && !n.nid){
-      R19_snack('أدخل اسم المعلم أو رقم الهوية أولاً.', false);
+      try{ window.snack?.('أدخل اسم المعلم أو رقم الهوية أولاً.',false); }catch{}
       return;
     }
 
-    const date = R19_getVisitDate(v);
-    const score = R19_visitScore(v);
-    const lvl = R19_levelLabel(score);
+    const d = visitDate(v);
+    const p = score(v);
+    const lvl = levelLbl(p);
 
     const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-      <title>تقرير زيارة ${R19_escapeHtml(R19_visitName(v))} — ${R19_escapeHtml(n.teacher||'—')}</title>
-      <style>${R19_baseCSS()}</style>
+      <title>تقرير الزيارة ${esc(visitName(v))} — ${esc(n.teacher||'—')}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;700&family=Cairo:wght@600;700&display=swap" rel="stylesheet">
+      <style>${reportCSS()}</style>
     </head><body>
       <div class="toolbar">
         <button class="btn" onclick="window.print()">طباعة</button>
         <button class="btn" onclick="window.close()">إغلاق</button>
       </div>
-
       <div class="sheet">
-        <div class="topline">${R19_escapeHtml(top.edu)} — ${R19_escapeHtml(top.sch)}</div>
-        <h1>تقرير زيارة صفية — الزيارة ${R19_escapeHtml(R19_visitName(v))}</h1>
+        <div class="topline">${esc(top.edu)} — ${esc(top.sch)}</div>
+        <h1>تقرير زيارة صفية — الزيارة ${esc(visitName(v))}</h1>
 
         <div class="metaBadges">
-          <span class="badge">التاريخ: <b>${R19_escapeHtml(date)}</b></span>
-          <span class="badge">اسم المعلم: <b>${R19_escapeHtml(n.teacher||'—')}</b></span>
-          <span class="badge">الهوية: <b>${R19_escapeHtml(n.nid||'—')}</b></span>
-          <span class="badge">التخصص: <b>${R19_escapeHtml(n.spec||'—')}</b></span>
-          <span class="badge">الفصل: <b>${R19_escapeHtml(n.klass||'—')}</b></span>
-          <span class="badge">الدرس: <b>${R19_escapeHtml(n.lesson||'—')}</b></span>
-          <span class="badge">نتيجة الزيارة: <b>${R19_escapeHtml(lvl)}</b> (${score}%)</span>
+          <span class="badge">التاريخ: <b>${esc(d)}</b></span>
+          <span class="badge">اسم المعلم: <b>${esc(n.teacher||'—')}</b></span>
+          <span class="badge">الهوية: <b>${esc(n.nid||'—')}</b></span>
+          <span class="badge">التخصص: <b>${esc(n.spec||'—')}</b></span>
+          <span class="badge">الفصل: <b>${esc(n.klass||'—')}</b></span>
+          <span class="badge">الدرس: <b>${esc(n.lesson||'—')}</b></span>
+          <span class="badge">نتيجة الزيارة: <b>${esc(lvl)}</b> (${p}%)</span>
         </div>
 
         <div class="sec">
           <div class="secT">عملية التعليم والتعلّم (ملخص العناصر المحددة)</div>
-          ${R19_buildLearningSummaryHTML(v)}
+          ${learningSummaryHTML(v)}
         </div>
 
-        ${R19_buildToolsSummaryHTML(v)}
+        ${toolsSummaryHTML(v)}
 
         <div class="sec">
-          <div class="secT">الدعم المقدّم للمعلم (موجز عملي)</div>
-          ${R19_getSupportLinesHTML(v)}
-          <div class="note" style="margin-top:6px">
-            يهدف الدعم إلى تحسين الممارسات وتعزيز أثر التعلّم وفق أساليب متابعة بناءة وتغذية راجعة قابلة للتطبيق.
-          </div>
+          <div class="secT">الدعم المقدّم للمعلم (موجز)</div>
+          ${supportHTML(v)}
+          <div class="note" style="margin-top:6px">الدعم للتحسين والتطوير وفق متابعة بناءة وتغذية راجعة قابلة للتطبيق.</div>
         </div>
 
-        ${R19_buildFooterSign(n.teacher, n.principal)}
-        <div class="muted">تقرير داخلي لأغراض المتابعة والتحسين — يُراعى حفظ الخصوصية واستخدام البيانات وفق الأنظمة.</div>
+        ${footerSign(n.teacher, n.principal)}
+        <div class="muted">تقرير داخلي لأغراض المتابعة والتحسين — يُراعى حفظ الخصوصية وفق الأنظمة.</div>
       </div>
     </body></html>`;
 
-    R19_openWindow(html);
-  };
+    openWin(html);
+  }
 
-  /* ====== تقرير شامل (3 زيارات) ====== */
-  R19.openAllReport = function(){
-    const top = R19_getTop();
-    const n = R19_getNames();
+  /* ------- all visits report ------- */
+  function openAllReport(){
+    const top = getTop();
+    const n = getCore();
 
     if(!n.teacher && !n.nid){
-      R19_snack('أدخل اسم المعلم أو رقم الهوية أولاً.', false);
+      try{ window.snack?.('أدخل اسم المعلم أو رقم الهوية أولاً.',false); }catch{}
       return;
     }
 
-    const dateHdr = (R$('visitDateInline')?.value || R19_hijriDate()).trim();
+    const hdr = ( $('visitDateInline')?.value || hijri() ).trim();
 
     const blocks = [1,2,3].map(v=>{
-      const date = R19_getVisitDate(v);
-      const score = R19_visitScore(v);
-      const lvl = R19_levelLabel(score);
+      const d = visitDate(v);
+      const p = score(v);
+      const lvl = levelLbl(p);
       return `
         <div class="sec">
-          <div class="secT">الزيارة ${R19_escapeHtml(R19_visitName(v))} — <span class="pill">${lvl}</span> (${score}%)</div>
+          <div class="secT">الزيارة ${esc(visitName(v))} — <span class="pill">${esc(lvl)}</span> (${p}%)</div>
           <div class="metaBadges" style="justify-content:flex-start">
-            <span class="badge">التاريخ: <b>${R19_escapeHtml(date)}</b></span>
+            <span class="badge">التاريخ: <b>${esc(d)}</b></span>
           </div>
 
           <div class="sec" style="margin:8px 0">
             <div class="secT">ملخص عملية التعليم والتعلّم</div>
-            ${R19_buildLearningSummaryHTML(v)}
+            ${learningSummaryHTML(v)}
           </div>
 
-          ${R19_buildToolsSummaryHTML(v)}
+          ${toolsSummaryHTML(v)}
 
           <div class="sec" style="margin:8px 0">
             <div class="secT">الدعم المقدّم للمعلم</div>
-            ${R19_getSupportLinesHTML(v)}
+            ${supportHTML(v)}
           </div>
-        </div>
-      `;
+        </div>`;
     }).join('');
 
     const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
-      <title>تقرير شامل — ${R19_escapeHtml(n.teacher||'—')}</title>
-      <style>${R19_baseCSS()}</style>
+      <title>تقرير شامل — ${esc(n.teacher||'—')}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;700&family=Cairo:wght@600;700&display=swap" rel="stylesheet">
+      <style>${reportCSS()}</style>
     </head><body>
       <div class="toolbar">
         <button class="btn" onclick="window.print()">طباعة</button>
         <button class="btn" onclick="window.close()">إغلاق</button>
       </div>
-
       <div class="sheet">
-        <div class="topline">${R19_escapeHtml(top.edu)} — ${R19_escapeHtml(top.sch)}</div>
+        <div class="topline">${esc(top.edu)} — ${esc(top.sch)}</div>
         <h1>تقرير شامل لزيارات المعلم</h1>
 
         <div class="metaBadges">
-          <span class="badge">التاريخ: <b>${R19_escapeHtml(dateHdr)}</b></span>
-          <span class="badge">اسم المعلم: <b>${R19_escapeHtml(n.teacher||'—')}</b></span>
-          <span class="badge">الهوية: <b>${R19_escapeHtml(n.nid||'—')}</b></span>
-          <span class="badge">التخصص: <b>${R19_escapeHtml(n.spec||'—')}</b></span>
+          <span class="badge">التاريخ: <b>${esc(hdr)}</b></span>
+          <span class="badge">اسم المعلم: <b>${esc(n.teacher||'—')}</b></span>
+          <span class="badge">الهوية: <b>${esc(n.nid||'—')}</b></span>
+          <span class="badge">التخصص: <b>${esc(n.spec||'—')}</b></span>
         </div>
 
         ${blocks}
 
-        ${R19_buildFooterSign(n.teacher, n.principal)}
-        <div class="muted">تقرير داخلي لأغراض المتابعة والتحسين — يُراعى حفظ الخصوصية واستخدام البيانات وفق الأنظمة.</div>
+        ${footerSign(n.teacher, n.principal)}
+        <div class="muted">تقرير داخلي لأغراض المتابعة والتحسين — يُراعى حفظ الخصوصية وفق الأنظمة.</div>
       </div>
     </body></html>`;
 
-    R19_openWindow(html);
-  };
-
-  /* ====== المراسلات (خوارزميًا) ====== */
-  function R19_buildCommsText(){
-    const top = R19_getTop();
-    const n = R19_getNames();
-    const v = (window.activeVisit || 1);
-    const date = R19_getVisitDate(v);
-    const score = R19_visitScore(v);
-    const lvl = R19_levelLabel(score);
-
-    const supportRaw = (R$('supportArea')?.value || '').split('\n').map(s=>s.trim()).filter(Boolean).slice(0,4);
-    const supportLines = supportRaw.length ? supportRaw.map(x=>`- ${x}`).join('\n') : '- —';
-
-    return [
-      `${top.edu} — ${top.sch}`,
-      `التاريخ: ${date}`,
-      `الموضوع: ملخص زيارة صفية (الزيارة ${R19_visitName(v)})`,
-      ``,
-      `اسم المعلم: ${n.teacher||'—'}  |  الهوية: ${n.nid||'—'}`,
-      `التخصص: ${n.spec||'—'}  |  الفصل: ${n.klass||'—'}  |  الدرس: ${n.lesson||'—'}`,
-      `نتيجة الزيارة: ${lvl} (${score}%)`,
-      ``,
-      `الدعم المقترح (موجز):`,
-      `${supportLines}`,
-      ``,
-      `مدير المدرسة: ${n.principal||'—'}`,
-      `*ملاحظة: الرسالة لأغراض المتابعة والتحسين، مع مراعاة الخصوصية والأنظمة.*`
-    ].join('\n');
+    openWin(html);
   }
 
-  function R19_toggleComms(open){
-    const p = R$('commsPanel');
-    if(!p) return;
-    p.style.display = (open===false) ? 'none' : 'block';
+  /* ------- binding buttons ------- */
+  async function safeSave(){
+    try{ if(typeof window.saveDraft === 'function') await window.saveDraft(); }catch{}
   }
 
-  /* ====== تحديث لوحة الشرح (Help) ====== */
-  function R19_renderHelp(){
-    const box = R$('helpBody');
-    if(!box) return;
-
-    box.innerHTML = `
-      <h3>كيف تستخدم الاستمارة باحتراف</h3>
-      <p>الاستمارة مخصّصة للمتابعة والتحسين المهني داخل المدرسة، وتعمل على توثيق الملاحظة الصفية بصورة منظمة تُسهم في دعم المعلم ورفع أثر التعلم.</p>
-
-      <div class="help-note">
-        <b>مبدأ مهم:</b> الهدف من الزيارة هو <u>الدعم والتحسين</u> عبر تغذية راجعة قابلة للتطبيق، وليس التركيز على الصياغات العقابية.
-      </div>
-
-      <h3>الخطوات المختصرة</h3>
-      <ul>
-        <li><span class="help-badge">1</span> أدخل بيانات المعلم (الاسم/الهوية/التخصص/الفصل/عنوان الدرس).</li>
-        <li><span class="help-badge">2</span> في <b>عملية التعليم والتعلّم</b> حدّد مستوى الأداء لكل عنصر (ضعيف/متوسط/متميز).</li>
-        <li><span class="help-badge">3</span> في <b>الأدوات المساندة</b> حدّد درجة التفعيل، واكتب سببًا مختصرًا عند عدم التفعيل أو التفعيل الجزئي.</li>
-        <li><span class="help-badge">4</span> سيُولّد قسم <b>الدعم المقدّم للمعلم</b> تلقائيًا (٤ أسطر عملية). يمكنك تعديلها بما يتوافق مع سياق الدرس.</li>
-        <li><span class="help-badge">5</span> استخدم <b>تقرير</b> لإخراج تقرير الزيارة الحالية، أو <b>بي دي إف</b> للتقرير الشامل للزيارات.</li>
-      </ul>
-
-      <h3>ما الذي يعزّز عملية التعليم والتعلّم؟ (أمثلة موجزة)</h3>
-      <ul>
-        <li>ربط الهدف السلوكي بنشاط واضح وأداة تقويم قصيرة (سؤال بنائي/بطاقة خروج).</li>
-        <li>تنويع الاستراتيجيات (فكر–زاوج–شارك / تعلم تعاوني) مع ضبط وقت الانتقال وتقليل الفاقد.</li>
-        <li>توظيف أداة رقمية واحدة تخدم الهدف (منصة/تقويم سريع) مع توثيق أثرها.</li>
-        <li>استخدام نتائج التقويم لتحديد متعثرين وخطة علاج قصيرة قابلة للقياس.</li>
-      </ul>
-
-      <div class="help-privacy">
-        <b>خصوصية البيانات:</b> يُراعى استخدام بيانات المعلم لأغراض العمل فقط، وعدم مشاركتها خارج القنوات الرسمية، وحفظها وفق الأنظمة والضوابط.
-      </div>
-    `;
-  }
-
-  /* ====== ربط الأزرار (IDs الصحيحة في صفحتك) ====== */
-  function R19_bind(){
-    // تقرير
-    const btnReport = R$('btnReport');
-    if(btnReport) btnReport.addEventListener('click', async ()=>{
-      try{
-        // حفظ سريع قبل فتح التقرير لضمان أحدث بيانات
-        if(typeof window.saveDraft === 'function') await window.saveDraft();
-      }catch{}
-      R19.openVisitReport();
-    });
-
-    // PDF شامل
-    const btnPDFAll = R$('btnPDFAll');
-    if(btnPDFAll) btnPDFAll.addEventListener('click', async ()=>{
-      try{
-        if(typeof window.saveDraft === 'function') await window.saveDraft();
-      }catch{}
-      R19.openAllReport();
-    });
-
-    // المراسلات
-    const btnComms = R$('btnComms');
-    if(btnComms) btnComms.addEventListener('click', ()=>{
-      R19_toggleComms(true);
-      // توليد مباشر
-      try{
-        const t = R19_buildCommsText();
-        const area = R$('commsTxt');
-        if(area) area.value = t;
-      }catch{}
-    });
-
-    const commsClose = R$('commsClose');
-    if(commsClose) commsClose.addEventListener('click', ()=>R19_toggleComms(false));
-
-    const btnMakeComms = R$('btnMakeComms');
-    if(btnMakeComms) btnMakeComms.addEventListener('click', ()=>{
-      const area = R$('commsTxt');
-      const t = R19_buildCommsText();
-      if(area) area.value = t;
-      R19_snack('تم توليد الرسالة.');
-    });
-
-    const btnCopyComms = R$('btnCopyComms');
-    if(btnCopyComms) btnCopyComms.addEventListener('click', async ()=>{
-      const t = (R$('commsTxt')?.value || R19_buildCommsText()).trim();
-      if(!t){ R19_snack('لا توجد رسالة للنسخ.', false); return; }
-      await R19_copy(t);
-      R19_snack('تم النسخ.');
-    });
-
-    const btnOpenWA = R$('btnOpenWA');
-    if(btnOpenWA) btnOpenWA.addEventListener('click', ()=>{
-      const msg = (R$('commsTxt')?.value || R19_buildCommsText()).trim();
-      if(!msg){ R19_snack('لا توجد رسالة لإرسالها.', false); return; }
-      const phone = (R$('waPhone')?.value || '').replace(/[^\d]/g,'').trim();
-      const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-      window.open(url, '_blank', 'noopener');
-    });
-
-    const btnOpenMail = R$('btnOpenMail');
-    if(btnOpenMail) btnOpenMail.addEventListener('click', ()=>{
-      const msg = (R$('commsTxt')?.value || R19_buildCommsText()).trim();
-      if(!msg){ R19_snack('لا توجد رسالة لإرسالها.', false); return; }
-      const to = (R$('mailTo')?.value || '').trim();
-      const n = R19_getNames();
-      const subj = `ملخص زيارة صفية — ${n.teacher||'—'}`;
-      const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(msg)}`;
-      window.location.href = url;
-    });
-
-    // زر الشرح العائم
-    const fabHelp = R$('fabHelp');
-    const helpPanel = R$('helpPanel');
-    if(fabHelp && helpPanel){
-      fabHelp.addEventListener('click', ()=>{
-        R19_renderHelp();
-        helpPanel.style.display='block';
+  function bind(){
+    const btnReport = $('btnReport');
+    if(btnReport){
+      btnReport.addEventListener('click', async ()=>{
+        await safeSave();
+        openVisitReport();
       });
     }
-    const helpClose = R$('helpClose');
-    if(helpClose) helpClose.addEventListener('click', ()=>{ if(helpPanel) helpPanel.style.display='none'; });
 
-    // زر المنصة العائم (إن لم يكن مربوطًا)
-    const fabHub = R$('fabHub');
-    if(fabHub){
-      fabHub.addEventListener('click', ()=>{
-        // ضع رابط منصتك إن كان موجودًا في كودك الأساسي
-        const url = (window.SCHOOL_HUB_URL || 'https://fhz545-hub.github.io/');
-        window.open(url, '_blank', 'noopener');
+    const btnPDFAll = $('btnPDFAll');
+    if(btnPDFAll){
+      btnPDFAll.addEventListener('click', async ()=>{
+        await safeSave();
+        openAllReport();
       });
     }
   }
 
-  // ابدأ الربط بعد تحميل DOM
   if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', R19_bind);
+    document.addEventListener('DOMContentLoaded', bind);
   }else{
-    R19_bind();
+    bind();
   }
-
 })();
 </script>
 <!-- ============ /PART 19 ============ -->
