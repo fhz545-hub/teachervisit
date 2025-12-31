@@ -25,6 +25,39 @@ html,body{margin:0;background:#fff;color:var(--ink);font-family:"Tajawal",system
 .hidden{display:none}
 .no-print{ }
 .input-error{border-color:var(--warn)!important;background:#fff5f7!important;box-shadow:0 0 0 2px rgba(225,29,72,.12) inset}
+/* ==== INFO: Combo box (class + lesson + date) inside ONE box ==== */
+.combo-box{
+  grid-column: span 12 / span 12;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  height:38px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+  padding:0 10px;
+}
+.combo-box .mini-sep{
+  width:1px;height:20px;background:var(--line);
+}
+.combo-box .combo-inp{
+  border:0;
+  outline:0;
+  background:transparent;
+  height:100%;
+  font:inherit;
+  color:var(--ink);
+  text-align:center;
+  min-width:0;
+  width:100%;
+}
+.combo-box .combo-inp::placeholder{color:#7a8f8a}
+.combo-box .combo-date{
+  width:220px;
+  max-width:40%;
+  opacity:.95;
+  cursor:default;
+}
 
 /* ======== HEADER IMAGE (NO TEXT) ======== */
 .header-img{
@@ -328,36 +361,33 @@ textarea.comms-preview{min-height:200px;border:1px dashed var(--line);border-rad
     <!-- (تمت إزالة 🏫 منصة التنظيم و ❓ شرح من صف الأزرار العلوي حسب الطلب) -->
   </div>
 
-  <!-- المعلومات العامة -->
-  <div class="box" id="boxInfo">
-    <h3><span>المعلومات العامة</span></h3>
-    <div class="grid" style="padding:10px">
+ <!-- المعلومات العامة -->
+<div class="box" id="boxInfo">
+  <h3><span>المعلومات العامة</span></h3>
+  <div class="grid" style="padding:10px">
 
-      <!-- الإدارة + المدرسة (في صف واحد) -->
-      <input class="fld fld-inline col-6" id="h-dir" placeholder="إدارة التعليم" value="الإدارة العامة للتعليم بالمنطقة الشرقية">
-      <input class="fld fld-inline col-6" id="h-school" placeholder="المدرسة" value="ثانوية اليعقوبي بالخبر">
+    <!-- الإدارة + المدرسة (في صف واحد) -->
+    <input class="fld fld-inline col-6" id="h-dir" placeholder="إدارة التعليم" value="الإدارة العامة للتعليم بالمنطقة الشرقية">
+    <input class="fld fld-inline col-6" id="h-school" placeholder="المدرسة" value="ثانوية اليعقوبي بالخبر">
 
-      <!-- الاسم (حقل كامل بدون اجتزاء) -->
-      <input class="fld fld-inline col-12 req full-name" id="tName" placeholder="اسم المعلم (كامل)">
+    <!-- الاسم + الهوية + التخصص + المرتبة (في صف واحد) -->
+    <input class="fld fld-inline col-3 req" id="tName" placeholder="اسم المعلم (كامل)">
+    <input class="fld fld-inline col-3" id="tId" placeholder="رقم الهوية (10 أرقام)" inputmode="numeric" maxlength="10">
+    <input class="fld fld-inline col-3 req" id="tSpec" placeholder="التخصص / المادة">
+    <input class="fld fld-inline col-3" id="degree" placeholder="المرتبة" value="معلم ممارس">
 
-      <!-- الهوية + التخصص + المرتبة (المرتبة افتراضي: معلم ممارس) -->
-      <input class="fld fld-inline col-4" id="tId" placeholder="رقم الهوية (10 أرقام)" inputmode="numeric" maxlength="10">
-      <input class="fld fld-inline col-4 req" id="tSpec" placeholder="التخصص / المادة">
-      <input class="fld fld-inline col-4" id="degree" placeholder="المرتبة">
-
-      <!-- حقل واحد بصريًا: الفصل + موضوع الدرس + اليوم/التاريخ بجوار الموضوع -->
-      <div class="col-12 info-combo">
-        <input class="fld fld-inline" id="class" placeholder="الفصل" style="min-width:160px">
-        <input class="fld fld-inline combo-grow" id="lesson" placeholder="موضوع الدرس">
-        <span class="info-date" id="todayHijriBadge">—</span>
-      </div>
-
-      <!-- عناصر لازمة للمنطق الحالي (مخفية فقط دون حذف) -->
-      <input class="fld fld-inline col-3 keep-hidden" id="exp" placeholder="سنوات الخبرة">
-      <input class="fld fld-inline col-3 keep-hidden" id="visitDateInline" placeholder="تاريخ الزيارة (هجري)" readonly>
-
+    <!-- مربع واحد: الفصل + موضوع الدرس + اليوم/التاريخ بجوار الموضوع (في صف واحد داخل نفس المربع) -->
+    <div class="combo-box">
+      <input class="combo-inp" id="class" placeholder="الفصل">
+      <span class="mini-sep"></span>
+      <input class="combo-inp" id="lesson" placeholder="موضوع الدرس">
+      <span class="mini-sep"></span>
+      <input class="combo-inp combo-date" id="visitDateInline" placeholder="اليوم / التاريخ (هجري)" readonly>
     </div>
+
   </div>
+</div>
+
 <!-- ============ PART 6 / 24 ============ -->
   <!-- المؤشرات -->
   <div class="hmeterTop">
