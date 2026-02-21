@@ -2551,41 +2551,73 @@ function calcAll(){
 $('#supportArea').addEventListener('input', dfn(()=>{ saveDraft(); }, 250));
 
 /* تشغيل أول مرة */
-(function boot(){
-  fitHeaderToImage();
-  syncSignNames();
-  buildLearning();
-  buildTools();
+(async function boot(){
+  try{
+    // استعادة آخر سياق (آخر معلم + آخر زيارة) قبل البناء
+    const lastCtx = loadLastContext();
 
-  // تاريخ العنوان (بدءًا)
-  setTitleDate(hijriNow());
+    fitHeaderToImage();
+    syncSignNames();
 
-  // محاولة استعادة آخر سياق
-  const ctx=loadLastContext();
-  if(ctx?.activeVisit) activeVisit=ctx.activeVisit;
+    // بناء الجداول
+    buildLearning();
+    buildTools();
 
-  // لو سبق وفتحنا معلم (هوية/مفتاح) حاول استرجاعه
-  (async ()=>{
-    if(ctx?.key){
-      const rec=await dbGet(ctx.key);
+    // تاريخ العنوان الافتراضي (إذا لا يوجد تاريخ زيارة محفوظ)
+    setTitleDate(hijriNow());
+
+    // تحديث العدسات/الحافظة
+    await refreshLens();
+    await refreshLensModal();
+    renderApprovedPanel();
+
+    // استعادة آخر معلم تم العمل عليه (إن وجد)
+    if(lastCtx && lastCtx.key){
+      const rec = await dbGet(lastCtx.key);
       if(rec){
-        $('#tName').value=rec.name||'';
-        $('#tId').value=rec.nationalId||'';
-        $('#tSpec').value=rec.spec||'';
-        $('#degree').value=rec.degree||'معلم ممارس';
-        $('#exp').value=rec.exp||'';
-        $('#class').value=rec.class||'';
-        $('#lesson').value=rec.lesson||'';
-        fixedKey=rec.teacherId; loadedRecord=rec;
+        // تعبئة الحقول
+        $('#tName').value = rec.name || '';
+        $('#tId').value = rec.nationalId || '';
+        $('#tSpec').value = rec.spec || '';
+        $('#degree').value = rec.degree || 'معلم ممارس';
+        $('#exp').value = rec.exp || '';
+        $('#class').value = rec.class || '';
+        $('#lesson').value = rec.lesson || '';
+
+        // استعادة الزيارة النشطة (إن كانت صحيحة)
+        if([1,2,3].includes(Number(lastCtx.activeVisit))){
+          activeVisit = Number(lastCtx.activeVisit);
+        }
+
+        fixedKey = rec.teacherId;
+        loadedRecord = rec;
+
+        // إعادة الرسم من السجل
+        await renderFromRecord();
       }
     }
-    await renderFromRecord();
-    await switchVisit(activeVisit||1);
-    await refreshLens();
+
+    // حسابات نهائية
     calcAll();
-  })();
+
+    // في حال لم يوجد تاريخ زيارة للزيارة الحالية، أبقِ تاريخ اليوم في العنوان
+    const curVisitDate = ($('#v'+activeVisit+'h')?.textContent || '').trim();
+    if(!curVisitDate || curVisitDate === '—'){
+      setTitleDate(hijriNow());
+    }
+
+    // حفظ السياق عند المغادرة
+    window.addEventListener('beforeunload', ()=>{
+      try{ saveLastContext(); }catch(e){}
+    });
+
+  }catch(err){
+    console.error('Boot error:', err);
+    // حتى لو حصل خطأ جزئي، نحاول إظهار الواجهة
+    try{ calcAll(); }catch(e){}
+    snack('حدث خطأ أثناء التهيئة الأولية، تم تشغيل الصفحة بشكل جزئي.', false);
+  }
 })();
 </script>
-
 </body>
 </html>
