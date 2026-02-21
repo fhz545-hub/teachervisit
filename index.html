@@ -884,8 +884,21 @@ const toolsData=[
 /* مصفوفة الحالة */
 function zeroMatrix(){ return fields.map(f=>Array(f.items.length).fill(0)); }
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
-let store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()}, activeVisit=1, loadedRecord=null, fixedKey=null;
 
+function mergeTeacherImport(oldRec, newRec){
+  return {
+    ...(oldRec || {}),
+    ...newRec,
+    teacherId: (oldRec?.teacherId || newRec.teacherId),
+    visits: oldRec?.visits || newRec.visits || {
+      1:{finalized:false,draft:zeroSupport()},
+      2:{finalized:false,draft:zeroSupport()},
+      3:{finalized:false,draft:zeroSupport()}
+    }
+  };
+}
+
+let store={1:zeroMatrix(),2:zeroMatrix(),3:zeroMatrix()}, activeVisit=1, loadedRecord=null, fixedKey=null;
 /* ============ PART 10 / 25 ============ */
 /* حساب المؤشرات */
 function levelLabel(p){ return p>=80?'متميز':(p>=50?'متوسط':'ضعيف'); }
@@ -893,7 +906,9 @@ function levelColor(p){ return p>=80?'#16a34a':(p>=50?'#f59e0b':'#ef4444'); }
 function visitScore(v){
   const area=store[v].flat().filter(Boolean);
   const areaPct=area.length? (area.reduce((a,b)=>a+b,0)/(area.length*3))*85:0;
- const rawStates = (loadedRecord?.visits?.[v]?.draft?.tools) ?? getToolsStateFromUI();
+ const rawStates = (v===activeVisit)
+  ? getToolsStateFromUI()
+  : ((loadedRecord?.visits?.[v]?.draft?.tools) ?? []);
 const states = (rawStates||[]).map(v => (v===0||v===1||v===2) ? v : null);
 const picked = states.filter(v => v!==null);
 const tScaled = picked.length
@@ -1045,11 +1060,19 @@ function setVisitDate(v){
   if(v===activeVisit) setTitleDate(d); /* التاريخ بجوار العنوان = تاريخ الزيارة الحالية */
 }
 function currentKey(){
-  if(fixedKey) return fixedKey;
-  const id=($('#tId').value||'').replace(/\D+/g,'');
-  if(/^\d{10}$/.test(id)) return id;
-  const name=($('#tName').value||'').trim();
-  return name?('name:'+name):'';
+  const id = ($('#tId').value || '').replace(/\D+/g,'');
+  const name = ($('#tName').value || '').trim();
+
+  // الهوية الصحيحة هي المفتاح الأول دائمًا
+  if (/^\d{10}$/.test(id)) return id;
+
+  // عند عدم وجود هوية صحيحة: استخدم fixedKey بحذر
+  if (fixedKey){
+    if (String(fixedKey).startsWith('name:')) return fixedKey;
+    if (loadedRecord && (loadedRecord.name || '').trim() === name) return fixedKey;
+  }
+
+  return name ? ('name:' + name) : '';
 }
 async function switchVisit(v){
   // حفظ فوري قبل مغادرة الزيارة الحالية حتى لا تضيع آخر التعديلات
@@ -1489,7 +1512,7 @@ $('#wizApply').onclick=async ()=>{
       visits:{1:{finalized:false,draft:zeroSupport()},2:{finalized:false,draft:zeroSupport()},3:{finalized:false,draft:zeroSupport()}}
     };
     const old = await dbGet(rec.teacherId);
-    await dbPut({...old,...rec, teacherId:(old?.teacherId||rec.teacherId)});
+    await dbPut(mergeTeacherImport(old, rec));
     imported++;
   }
 
@@ -1596,7 +1619,7 @@ excelInput2.addEventListener('change', async e=>{
     if(auto.list.length>0){
       for(const rec of auto.list){
         const old=await dbGet(rec.teacherId);
-        await dbPut({...old,...rec, teacherId:(old?.teacherId||rec.teacherId)});
+        await dbPut(mergeTeacherImport(old, rec));
       }
       snack(`تم استيراد ${auto.list.length} سجل${auto.list.length>1?'ات':''}. ${auto.skipped?('تجاوز: '+auto.skipped+' صف.'):''}`,true);
       await refreshLensModal();
@@ -1661,7 +1684,7 @@ $('#excelInput').addEventListener('change',async e=>{
     if(auto.list.length>0){
       for(const rec of auto.list){
         const old=await dbGet(rec.teacherId);
-        await dbPut({...old,...rec, teacherId:(old?.teacherId||rec.teacherId)});
+        await dbPut(mergeTeacherImport(old, rec));
       }
       snack(`تم استيراد ${auto.list.length} سجل${auto.list.length>1?'ات':''}. ${auto.skipped?('تجاوز: '+auto.skipped+' صف.'):''}`,true);
       await refreshLens();
