@@ -761,6 +761,18 @@ async function dbPut(rec){ lsSet('t_'+rec.teacherId,rec); if(USE_LS){return true
 async function dbGet(key){ if(USE_LS) return lsGet('t_'+key)||null; const db=await openDB(); if(!db) return lsGet('t_'+key)||null;
   return new Promise(r=>{const tx=db.transaction(STORE,'readonly'); tx.objectStore(STORE).get(key).onsuccess=e=>r(e.target.result||lsGet('t_'+key)||null); tx.onerror=()=>r(lsGet('t_'+key)||null);});
 }
+async function dbDelete(key){
+  try{ localStorage.removeItem(LS_PREFIX+'t_'+key); }catch{}
+  if(USE_LS) return;
+  const db = await openDB();
+  if(!db) return;
+
+  await new Promise(r=>{
+    const tx = db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).delete(key).onsuccess = ()=> r(true);
+    tx.onerror = ()=> r(true);
+  });
+}
 async function dbAll(){ if(USE_LS){
     const out=[];
     for(let i=0;i<localStorage.length;i++){
@@ -1098,8 +1110,19 @@ function currentKey(){
   const id = ($('#tId').value || '').replace(/\D+/g,'');
   const name = ($('#tName').value || '').trim();
 
-  // الهوية الصحيحة هي المفتاح الأول دائمًا
-  if (/^\d{10}$/.test(id)) return id;
+  // مهم: إذا كان السجل الحالي محفوظًا باسم فقط (name:) ثم أُدخلت الهوية لاحقًا،
+  // لا تغيّر المفتاح فورًا حتى لا ينشأ سجل جديد وتضيع الزيارات.
+  if (/^\d{10}$/.test(id)) {
+    if (
+      fixedKey &&
+      String(fixedKey).startsWith('name:') &&
+      loadedRecord &&
+      (loadedRecord.name || '').trim() === name
+    ) {
+      return fixedKey; // نستمر على نفس السجل مؤقتًا
+    }
+    return id;
+  }
 
   // عند عدم وجود هوية صحيحة: استخدم fixedKey بحذر
   if (fixedKey){
@@ -1237,8 +1260,26 @@ async function saveDraft(){
   rec.visits[v].draft.support=detailed.map(x=>x.text);
   rec.visits[v].draft.date=$('#v'+v+'h').textContent||'';
 
+// ترحيل المفتاح من name: إلى الهوية عند توفر هوية صحيحة لأول مرة
+const typedId = ($('#tId').value || '').replace(/\D+/g,'').slice(0,10);
+const hasValidTypedId = /^\d{10}$/.test(typedId);
+
+if (hasValidTypedId && String(rec.teacherId || '').startsWith('name:')) {
+  const oldKey = rec.teacherId;
+
+  rec.teacherId = typedId;
+  rec.nationalId = typedId;
+
+  await dbPut(rec);          // حفظ بالسجل الجديد (الهوية)
+  if (oldKey !== typedId) {
+    await dbDelete(oldKey);  // حذف السجل القديم (name:)
+  }
+
+  fixedKey = rec.teacherId;
+  loadedRecord = rec;
+} else {
   await dbPut(rec);
-  setDonut(1,visitScore(1)); setDonut(2,visitScore(2)); setDonut(3,visitScore(3));
+}  setDonut(1,visitScore(1)); setDonut(2,visitScore(2)); setDonut(3,visitScore(3));
   setVisitMeter(); setGlobalMeter();
   setTitleDate($('#v'+activeVisit+'h')?.textContent || $('#visitDateInline')?.value || hijriNow());
   saveLastContext();
@@ -2532,105 +2573,182 @@ $('#btnPDFAll').onclick = async () => {
 </script>
 <!-- ============ PART 25 / 25 ============ -->
 <script>
-/* ========= الحسابات العامة + تشغيل أولي ========= */
+/* ========= إكمال زر PDF المجمّع + الحسابات العامة + التهيئة ========= */
+
+/* زر PDF المجمّع (مُحسَّن لضمان تزامن السجل قبل التوليد) */
+$('#btnPDFAll').onclick = async () => {
+  if(!($('#tName').value || '').trim()){
+    snack('اختر معلماً أولاً.', false);
+    return;
+  }
+
+  await saveDraft();
+
+  try{
+    const key = currentKey() || fixedKey;
+    if(key){
+      const rec = await dbGet(key);
+      if(rec){
+        loadedRecord = rec;
+        fixedKey = rec.teacherId || fixedKey;
+      }
+    }
+  }catch(e){
+    console.warn('refresh record before all-visits report failed', e);
+  }
+
+  openAllVisitsReport();
+};
+
+/* حساب وتحديث جميع المؤشرات */
 function calcAll(){
+  syncSignNames();
   updateToolsSummary();
-  setDonut(1,visitScore(1));
-  setDonut(2,visitScore(2));
-  setDonut(3,visitScore(3));
+
+  setDonut(1, visitScore(1));
+  setDonut(2, visitScore(2));
+  setDonut(3, visitScore(3));
+
   setVisitMeter();
   setGlobalMeter();
+
+  const currentDateText =
+    ($('#v'+activeVisit+'h')?.textContent || '').trim() ||
+    ($('#visitDateInline')?.value || '').trim() ||
+    hijriNow();
+
+  setTitleDate(currentDateText);
+}
+
+/* تعبئة الحقول من سجل معلم */
+function fillTeacherFields(rec){
+  $('#tName').value   = rec?.name || '';
+  $('#tId').value     = rec?.nationalId || '';
+  $('#tSpec').value   = rec?.spec || '';
+  $('#degree').value  = rec?.degree || 'معلم ممارس';
+  $('#exp').value     = rec?.exp || '';
+  $('#class').value   = rec?.class || '';
+  $('#lesson').value  = rec?.lesson || '';
   syncSignNames();
 }
 
-['tName','tId','tSpec','degree','class','lesson','exp'].forEach(id=>{
-  const el=$('#'+id);
-  if(!el) return;
-  el.addEventListener('input', dfn(()=>{
+/* حفظ تلقائي عند تعديل الحقول الأساسية */
+const saveFormDebounced = dfn(async ()=>{
+  try{
+    // تنظيف الهوية (أرقام فقط بحد أقصى 10)
+    const idEl = $('#tId');
+    if(idEl){
+      idEl.value = digitsOnly(idEl.value || '').slice(0,10);
+    }
+
     syncSignNames();
-    saveDraft();
-    calcAll();
-  }, 220));
+    await saveDraft();
+
+    // تحديث القوائم (خصوصًا لو تغيّر الاسم/الهوية)
+    await refreshLens();
+    if(lensModal && lensModal.style.display === 'flex'){
+      await refreshLensModal();
+    }
+  }catch(err){
+    console.warn('autosave failed', err);
+  }
+}, 220);
+
+/* ربط الحقول */
+['#tName','#tId','#tSpec','#degree','#exp','#class','#lesson'].forEach(sel=>{
+  const el = $(sel);
+  if(!el) return;
+  el.addEventListener('input', ()=>{
+    // إزالة تمييز الخطأ مباشرة عند البدء بالكتابة
+    el.classList.remove('input-error');
+    saveFormDebounced();
+  });
+  el.addEventListener('change', saveFormDebounced);
 });
 
-$('#supportArea').addEventListener('input', dfn(()=>{
-  saveDraft();
+/* حفظ الدعم اليدوي */
+$('#supportArea')?.addEventListener('input', dfn(async ()=>{
+  try{ await saveDraft(); }catch(e){ console.warn(e); }
 }, 250));
 
-/* تشغيل أول مرة */
-(async function boot(){
-  try{
-    // استعادة آخر سياق (آخر معلم + آخر زيارة)
-    const lastCtx = loadLastContext();
+/* تصحيح إدخال الهوية عند اللصق/الكتابة بالأرقام العربية */
+$('#tId')?.addEventListener('blur', ()=>{
+  const el = $('#tId');
+  el.value = digitsOnly(el.value || '').slice(0,10);
+});
 
-    // ضبط الهيدر حسب أبعاد الصورة (بدون تشويه)
+/* ===== التهيئة العامة ===== */
+(async function initApp(){
+  try{
     fitHeaderToImage();
 
-    // تاريخ افتراضي بجوار العنوان حتى يتم تحديد تاريخ زيارة
-    setTitleDate(hijriNow());
-
-    // فتح قاعدة البيانات المحلية (IndexedDB/LS fallback)
+    // فتح قاعدة البيانات مبكرًا
     await openDB();
 
-    // بناء الواجهة أولاً
+    // تجهيز الواجهة الأساسية
     buildLearning();
     buildTools();
-    calcAll();
+    syncSignNames();
 
-    // تحديث قوائم الأسماء والحافظة
-    await refreshLens();
-    renderApprovedPanel();
+    // تاريخ افتراضي للعنوان فقط (لا يُفرض على الزيارة حتى يضغط المستخدم على تاريخ الزيارة)
+    $('#visitDateInline').value = hijriNow();
+    setTitleDate(hijriNow());
 
-    // استعادة افتراضيات التواصل
-    getCommDefaults();
+    // استرجاع آخر سياق (آخر معلم + آخر زيارة)
+    const lastCtx = loadLastContext();
+    if(lastCtx && (lastCtx.activeVisit===1 || lastCtx.activeVisit===2 || lastCtx.activeVisit===3)){
+      activeVisit = lastCtx.activeVisit;
+    }
 
-    // استعادة آخر معلم تم العمل عليه (إن وجد)
-    if(lastCtx && lastCtx.key){
+    // حاول استرجاع آخر معلم
+    let restored = false;
+    if(lastCtx?.key){
       const rec = await dbGet(lastCtx.key);
       if(rec){
         loadedRecord = rec;
-        fixedKey = rec.teacherId || lastCtx.key;
-
-        $('#tName').value  = rec.name || '';
-        $('#tId').value    = rec.nationalId || '';
-        $('#tSpec').value  = rec.spec || '';
-        $('#degree').value = rec.degree || 'معلم ممارس';
-        $('#exp').value    = rec.exp || '';
-        $('#class').value  = rec.class || '';
-        $('#lesson').value = rec.lesson || '';
-
-        // الزيارة النشطة (مع تحقق)
-        activeVisit = [1,2,3].includes(lastCtx.activeVisit) ? lastCtx.activeVisit : 1;
-
-        // إعادة الرسم من السجل
+        fixedKey = rec.teacherId;
+        fillTeacherFields(rec);
         await renderFromRecord();
+        restored = true;
       }
     }
 
-    // إن لم يوجد تاريخ زيارة للزيارة الحالية، أبقِ تاريخ اليوم في العنوان
-    const curVisitDate = ($('#v'+activeVisit+'h')?.textContent || '').trim();
-    setTitleDate(curVisitDate && curVisitDate !== '—' ? curVisitDate : hijriNow());
-
-    // مزامنة نهائية
-    calcAll();
-  }catch(err){
-    console.error('boot error:', err);
-
-    // تشغيل احتياطي حتى لا تتعطل الصفحة بالكامل
-    try{
-      buildLearning();
-      buildTools();
+    if(!restored){
+      // بدون سجل سابق — ابقِ الواجهة فارغة جاهزة
       calcAll();
-      setTitleDate(hijriNow());
-      await refreshLens();
-      renderApprovedPanel();
-    }catch(e2){
-      console.error('boot fallback error:', e2);
     }
 
-    snack('تم تشغيل الصفحة مع ملاحظة بسيطة. راجع Console إن لزم.', false);
+    // تحديث القوائم
+    await refreshLens();
+    renderApprovedPanel();
+
+    // قيم افتراضية للتوقيع (إن وجدت)
+    const pr = localStorage.getItem(LS_PREFIX+'principal');
+    if(pr){
+      ['pr1Name','pr2Name','pr3Name'].forEach(id=>{
+        const el = $('#'+id);
+        if(el) el.textContent = pr;
+      });
+    }
+
+    // لو كانت نافذة العدسة القديمة ما زالت مستخدمة بمكان ما، نخفيها عند الضغط خارجها
+    document.addEventListener('click', (e)=>{
+      if(!lensMenu || !lensBtn) return;
+      const isInside = lensMenu.contains(e.target) || lensBtn.contains(e.target);
+      if(!isInside) lensMenu.style.display = 'none';
+    });
+
+    // منع فقدان المؤشرات بعد الرجوع من التقارير
+    window.addEventListener('focus', ()=>{
+      try{ calcAll(); }catch{}
+    });
+
+  }catch(err){
+    console.error(err);
+    snack('حدث خطأ أثناء تهيئة الصفحة.', false);
   }
 })();
 </script>
+
 </body>
 </html>
