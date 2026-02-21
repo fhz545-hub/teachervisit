@@ -2573,33 +2573,47 @@ function buildHelpContent(){
     <p>1) افتح <b>الأسماء</b> ثم اختر معلمًا أو استورد قائمة المعلمين من Excel/CSV/PDF النصّي.</p>
     <p>2) أكمل المعلومات العامة (الاسم/التخصص/الفصل/موضوع الدرس).</p>
     <p>3) قيّم عناصر التعليم والتعلّم واختر مستوى تفعيل الأدوات المساندة.</p>
-    <p>4) راجع <b>الدعم المقدّم للمعلم</b> (يُولد تلقائيًا) ويمكنك تعديله بما يناسب الزيارة.</p>
+    <p>4) راجع <b>الدعم المقدّم للمعلم</b> (يُولّد تلقائيًا) ويمكنك تعديله بما يناسب الزيارة.</p>
     <p>5) اضغط <b>اعتمد</b> لحفظ الزيارة في السجل.</p>
-    <p>6) استخدم <b>تقرير</b> أو <b>بي دي إف</b> لإخراج تقرير الزيارة الحالية أو التقرير المجمّع (٣ زيارات).</p>
+    <p>6) استخدم <b>تقرير</b> أو <b>بي دي إف</b> لإخراج تقرير فردي أو تقرير مجمّع للزيارات الثلاث.</p>
+    <p>7) استخدم <b>المراسلات</b> لتوليد رسالة مختصرة للمعلم ونسخها/إرسالها عبر واتساب أو البريد.</p>
 
-    <div class="help-note">
-      الزيارة الثالثة (دعم) مخصصة لحالات الدعم التربوي (انخفاض الأداء في إحدى الزيارتين الأولى/الثانية)
-      أو للمعلم حديث الخبرة (≤ سنتين). ويتم فتحها تلقائيًا عند تحقق الشرط.
-    </div>
-
-    <h3>الاستيراد والنسخ الاحتياطي</h3>
+    <h3>الاستيراد (Excel / CSV / PDF النصّي)</h3>
     <ul>
-      <li>يمكن استيراد قائمة المعلمين من Excel / CSV / PDF النصّي.</li>
-      <li>عند عدم التعرّف التلقائي على العناوين، يفتح <b>مُعالج الاستيراد</b> لتعيين الأعمدة يدويًا.</li>
-      <li>زر <b>تصدير البيانات</b> يحفظ نسخة احتياطية كاملة بصيغة JSON (المعلمين + الزيارات).</li>
-      <li>زر <b>استيراد البيانات</b> يستعيد النسخة الاحتياطية ويُبقي بيانات الزيارات محفوظة.</li>
+      <li>يدعم الاستيراد التلقائي للأعمدة الشائعة (الاسم، الهوية، التخصص، الرتبة، الخبرة، الجوال، البريد).</li>
+      <li>إذا لم يتم التعرّف تلقائيًا على الأعمدة، سيظهر <b>مُعالج الاستيراد</b> لتعيين الأعمدة يدويًا.</li>
+      <li>يفضّل وجود <b>رقم الهوية (10 أرقام)</b> لتجنّب تكرار السجلات.</li>
+      <li>يمكن تنزيل <b>قالب جاهز</b> بصيغة XLSX أو CSV.</li>
     </ul>
 
-    <h3>ملاحظات تربوية وتنظيمية</h3>
+    <h3>التقييم والدعم</h3>
     <ul>
-      <li>الدعم المولّد تلقائيًا هو مقترح مساعد، ويمكن تعديله بما يتوافق مع حاجة المعلم وخطة التحسين.</li>
-      <li>الاعتماد يحفظ الزيارة الحالية فقط، ويمكن لاحقًا تعديلها أو مسحها عند الحاجة.</li>
-      <li>يُفضّل استكمال البيانات الأساسية (اسم المعلم، التخصص، والهوية إن توفرت) قبل الاعتماد.</li>
+      <li>التقييم ثلاثي المستوى: <b>ضعيف / متوسط / متميز</b>.</li>
+      <li>يتحدّث المؤشر تلقائيًا لكل زيارة، وكذلك المؤشر الشامل.</li>
+      <li>الزيارة الثالثة تظهر كزيارة دعم عند الحاجة (انخفاض الأداء أو خبرة ≤ سنتين).</li>
+      <li>الدعم المقترح يُبنى آليًا على نتائج التقييم والأدوات المساندة، ويمكن تعديله يدويًا.</li>
+    </ul>
+
+    <div class="help-note">
+      ملاحظة: عند كتابة الهوية لأول مرة لمعلم كان محفوظًا بالاسم فقط، يتم ترحيل السجل تلقائيًا إلى مفتاح الهوية مع الحفاظ على الزيارات السابقة.
+    </div>
+
+    <h3>التقارير والحفظ</h3>
+    <ul>
+      <li><b>تقرير</b>: تقرير الزيارة الحالية فقط.</li>
+      <li><b>بي دي إف</b>: تقرير مجمّع (٣ زيارات) في نافذة طباعة واحدة.</li>
+      <li>يمكن الطباعة أو الحفظ بصيغة PDF من متصفحك.</li>
+      <li>تُحفظ البيانات محليًا في المتصفح (IndexedDB مع بديل LocalStorage).</li>
+    </ul>
+
+    <h3>النسخة الاحتياطية</h3>
+    <ul>
+      <li><b>تصدير البيانات</b>: يحفظ جميع سجلات المعلمين والزيارات في ملف JSON.</li>
+      <li><b>استيراد البيانات</b>: يستعيد السجلات من ملف JSON (مع الحفاظ على الزيارات).</li>
     </ul>
 
     <div class="help-privacy">
-      جميع البيانات تُحفظ محليًا على جهازك (IndexedDB / LocalStorage) داخل المتصفح، ولا يتم رفعها تلقائيًا.
-      احرص على أخذ نسخة احتياطية دورية بصيغة JSON.
+      الخصوصية: البيانات تُحفظ محليًا على جهازك داخل المتصفح، ولا يتم إرسالها لخادم خارجي من خلال هذه الاستمارة.
     </div>
   `;
 }
@@ -2607,22 +2621,21 @@ function buildHelpContent(){
 function openHelpPanel(){
   buildHelpContent();
   const p = $('#helpPanel');
-  if(!p) return;
-  p.style.display = 'block';
+  if(p) p.style.display = 'block';
 }
 function closeHelpPanel(){
   const p = $('#helpPanel');
-  if(!p) return;
-  p.style.display = 'none';
+  if(p) p.style.display = 'none';
 }
 
 $('#fabHelp')?.addEventListener('click', openHelpPanel);
 $('#helpClose')?.addEventListener('click', closeHelpPanel);
+$('#helpPanel')?.addEventListener('click', (e)=>{
+  if(e.target === $('#helpPanel')) closeHelpPanel();
+});
 
-/* فتح المنصة */
 $('#fabHub')?.addEventListener('click', ()=>{
-  const url = (localStorage.getItem(LS_PREFIX+'hubUrl') || HUB_URL_DEFAULT).trim();
-  window.open(url, '_blank');
+  window.open(HUB_URL_DEFAULT, '_blank');
 });
 
 /* أسهم التمرير */
@@ -2630,88 +2643,41 @@ $('#scrollUp')?.addEventListener('click', ()=>{
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 $('#scrollDown')?.addEventListener('click', ()=>{
-  const h = Math.max(
-    document.body.scrollHeight,
-    document.documentElement.scrollHeight
-  );
-  window.scrollTo({ top: h, behavior: 'smooth' });
+  window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
 });
 
-/* الحسابات العامة */
+/* حسابات مجمّعة */
 function calcAll(){
   try{
-    syncSignNames();
-    updateToolsSummary?.();
+    updateToolsSummary();
+  }catch(e){ console.warn(e); }
+
+  try{
     setDonut(1, visitScore(1));
     setDonut(2, visitScore(2));
     setDonut(3, visitScore(3));
     setVisitMeter();
     setGlobalMeter();
-    setTitleDate(
-      ($('#v'+activeVisit+'h')?.textContent && $('#v'+activeVisit+'h').textContent !== '—')
-        ? $('#v'+activeVisit+'h').textContent
-        : ( $('#visitDateInline')?.value || hijriNow() )
-    );
-  }catch(err){
-    console.warn('calcAll warning', err);
-  }
-}
+  }catch(e){ console.warn(e); }
 
-/* تهيئة الإدخال الحي + حفظ تلقائي */
-function bindLiveInputs(){
-  const ids = ['tName','tId','tSpec','degree','exp','class','lesson','h-dir','h-school'];
-  const onChange = dfn(async ()=>{
+  try{
     syncSignNames();
-    calcAll();
-    try{ await saveDraft(); }catch(e){ /* تجاهل عند عدم اختيار معلم بعد */ }
-  }, 220);
+  }catch(e){ console.warn(e); }
 
-  ids.forEach(id=>{
-    const el = $('#'+id);
-    if(!el) return;
-
-    el.addEventListener('input', ()=>{
-      // ضبط الهوية إلى أرقام فقط (مع دعم الأرقام العربية)
-      if(id === 'tId'){
-        const curPos = el.selectionStart;
-        const normalized = digitsOnly(el.value).slice(0,10);
-        if(el.value !== normalized){
-          el.value = normalized;
-          try{ el.setSelectionRange(Math.min(curPos, el.value.length), Math.min(curPos, el.value.length)); }catch{}
-        }
-      }
-      onChange();
-    });
-
-    el.addEventListener('change', onChange);
-  });
-
-  $('#supportArea')?.addEventListener('input', dfn(async ()=>{
-    calcAll();
-    try{ await saveDraft(); }catch(e){}
-  }, 220));
+  try{
+    setTitleDate($('#v'+activeVisit+'h')?.textContent || $('#visitDateInline')?.value || hijriNow());
+  }catch(e){ console.warn(e); }
 }
 
-/* إغلاق قائمة العدسة القديمة عند النقر خارجها (إن استخدمت) */
-document.addEventListener('click', (e)=>{
-  const m = $('#lensMenu');
-  const w = document.querySelector('.lens-wrap');
-  if(!m || !w) return;
-  if(m.style.display === 'block' && !w.contains(e.target)){
-    m.style.display = 'none';
-  }
-});
-
-/* التقرير المجمّع */
+/* ربط الأزرار/الإجراءات المساندة */
 $('#btnPDFAll')?.addEventListener('click', async ()=>{
   if(!($('#tName')?.value || '').trim()){
     snack('اختر معلماً أولاً.', false);
     return;
   }
+  await saveDraft();
 
   try{
-    await saveDraft();
-
     const key = currentKey() || fixedKey;
     if(key){
       const rec = await dbGet(key);
@@ -2720,12 +2686,55 @@ $('#btnPDFAll')?.addEventListener('click', async ()=>{
         fixedKey = rec.teacherId || fixedKey;
       }
     }
-
-    openAllVisitsReport();
-  }catch(err){
-    console.error(err);
-    snack('تعذر فتح التقرير المجمّع.', false);
+  }catch(e){
+    console.warn('refresh record before all-visits report failed', e);
   }
+
+  openAllVisitsReport();
+});
+
+/* حفظ تلقائي للحقول الأساسية */
+const autoSaveInputs = [
+  '#tName','#tId','#tSpec','#degree','#exp','#class','#lesson','#supportArea',
+  '#h-dir','#h-school'
+];
+autoSaveInputs.forEach(sel=>{
+  const el = $(sel);
+  if(!el) return;
+  el.addEventListener('input', dfn(async ()=>{
+    try{
+      syncSignNames();
+      await saveDraft();
+      if(sel === '#tName' || sel === '#tId'){
+        await refreshLens();
+        if(lensModal?.style.display === 'flex') await refreshLensModal();
+      }
+    }catch(e){
+      console.warn('autosave error', e);
+    }
+  }, 220));
+});
+
+/* تحسين: عند مغادرة الحقل أيضًا احفظ مباشرة */
+['#tName','#tId','#tSpec','#degree','#exp','#class','#lesson'].forEach(sel=>{
+  const el=$(sel);
+  if(!el) return;
+  el.addEventListener('change', async ()=>{
+    try{
+      syncSignNames();
+      await saveDraft();
+      await refreshLens();
+      if(lensModal?.style.display === 'flex') await refreshLensModal();
+    }catch(e){ console.warn(e); }
+  });
+});
+
+/* منع إغلاق قائمة العدسة القديمة إن وُجدت (تم استبدالها بالمودال) */
+document.addEventListener('click', (e)=>{
+  if(!lensMenu) return;
+  if(lensMenu.style.display !== 'block') return;
+  const inside = e.target.closest('.lens-wrap');
+  if(!inside) lensMenu.style.display = 'none';
 });
 </script>
 
@@ -2735,37 +2744,34 @@ $('#btnPDFAll')?.addEventListener('click', async ()=>{
 (async function initApp(){
   try{
     fitHeaderToImage();
+  }catch(e){ console.warn(e); }
 
-    // بناء الجداول أولًا
-    buildLearning();
-    buildTools();
-
-    // تاريخ افتراضي بجوار العنوان
-    setTitleDate(hijriNow());
-
-    // التوقيعات
-    syncSignNames();
-
-    // ربط الحقول بالحفظ التلقائي
-    bindLiveInputs();
-
-    // فتح قاعدة البيانات / التخزين
+  try{
     await openDB();
+  }catch(e){ console.warn(e); }
 
-    // تحديث قوائم الأسماء
-    await refreshLens();
-    if($('#lensModal')?.style.display === 'flex'){
-      await refreshLensModal();
-    }
+  /* بناء الجداول أولًا */
+  buildLearning();
+  buildTools();
 
-    // استرجاع آخر سياق (آخر معلم + آخر زيارة)
+  /* تهيئة التاريخ */
+  setTitleDate(hijriNow());
+
+  /* أسماء التواقيع */
+  syncSignNames();
+
+  /* تهيئة المؤشرات */
+  calcAll();
+
+  /* تهيئة قوائم الأسماء */
+  try{ await refreshLens(); }catch(e){ console.warn(e); }
+
+  /* استعادة آخر سياق (معلم + زيارة) */
+  try{
     const ctx = loadLastContext();
-    if(ctx?.key){
+    if(ctx && ctx.key){
       const rec = await dbGet(ctx.key);
       if(rec){
-        loadedRecord = rec;
-        fixedKey = rec.teacherId;
-
         $('#tName').value = rec.name || '';
         $('#tId').value = rec.nationalId || '';
         $('#tSpec').value = rec.spec || '';
@@ -2774,32 +2780,50 @@ $('#btnPDFAll')?.addEventListener('click', async ()=>{
         $('#class').value = rec.class || '';
         $('#lesson').value = rec.lesson || '';
 
+        fixedKey = rec.teacherId;
+        loadedRecord = rec;
+
+        activeVisit = (ctx.activeVisit===1 || ctx.activeVisit===2 || ctx.activeVisit===3) ? ctx.activeVisit : 1;
         await renderFromRecord();
-      }else{
-        calcAll();
       }
-    }else{
-      calcAll();
     }
-
-    // تحديث الحافظة (إن كانت مفتوحة)
-    if($('#approvedPanel')?.style.display === 'block'){
-      renderApprovedPanel();
-    }
-
-    // أزرار التواريخ (عند النقر على شارة الزيارة)
-    ['1','2','3'].forEach(v=>{
-      const chip = $('#v'+v+'h');
-      if(chip && (!chip.textContent || chip.textContent.trim()==='')){
-        chip.textContent = '—';
-      }
-    });
-
-  }catch(err){
-    console.error('initApp failed', err);
-    snack('حدث خطأ أثناء تهيئة الصفحة. راجع وحدة التحكم (Console).', false);
+  }catch(e){
+    console.warn('restore last context failed', e);
   }
+
+  /* تهيئة المراسلات الافتراضية */
+  try{
+    getCommDefaults();
+  }catch(e){ console.warn(e); }
+
+  /* حفظ قبل الإغلاق (أفضل جهد) */
+  window.addEventListener('beforeunload', ()=>{
+    try{
+      saveLastContext();
+      saveDraft();
+    }catch(e){}
+  });
+
+  /* فتح/إغلاق لوحة الشرح بالمفتاح F1 (اختياري) */
+  window.addEventListener('keydown', (e)=>{
+    if(e.key === 'F1'){
+      e.preventDefault();
+      const shown = $('#helpPanel')?.style.display === 'block';
+      if(shown) closeHelpPanel();
+      else openHelpPanel();
+    }
+  });
+
+  /* تحسين تجربة إدخال الهوية: أرقام فقط (مع السماح بالأرقام العربية) */
+  $('#tId')?.addEventListener('input', (e)=>{
+    const raw = e.target.value || '';
+    const cleaned = digitsOnly(raw).slice(0,10);
+    if(raw !== cleaned) e.target.value = cleaned;
+  });
+
+  snack('تم تحميل الاستمارة بنجاح.', true);
 })();
 </script>
+
 </body>
 </html>
