@@ -2546,76 +2546,89 @@ function calcAll(){
 ['tName','tId','tSpec','degree','class','lesson','exp'].forEach(id=>{
   const el=$('#'+id);
   if(!el) return;
-  el.addEventListener('input', dfn(()=>{ syncSignNames(); saveDraft(); calcAll(); }, 220));
+  el.addEventListener('input', dfn(()=>{
+    syncSignNames();
+    saveDraft();
+    calcAll();
+  }, 220));
 });
-$('#supportArea').addEventListener('input', dfn(()=>{ saveDraft(); }, 250));
+
+$('#supportArea').addEventListener('input', dfn(()=>{
+  saveDraft();
+}, 250));
 
 /* تشغيل أول مرة */
 (async function boot(){
   try{
-    // استعادة آخر سياق (آخر معلم + آخر زيارة) قبل البناء
+    // استعادة آخر سياق (آخر معلم + آخر زيارة)
     const lastCtx = loadLastContext();
 
+    // ضبط الهيدر حسب أبعاد الصورة (بدون تشويه)
     fitHeaderToImage();
-    syncSignNames();
 
-    // بناء الجداول
-    buildLearning();
-    buildTools();
-
-    // تاريخ العنوان الافتراضي (إذا لا يوجد تاريخ زيارة محفوظ)
+    // تاريخ افتراضي بجوار العنوان حتى يتم تحديد تاريخ زيارة
     setTitleDate(hijriNow());
 
-    // تحديث العدسات/الحافظة
+    // فتح قاعدة البيانات المحلية (IndexedDB/LS fallback)
+    await openDB();
+
+    // بناء الواجهة أولاً
+    buildLearning();
+    buildTools();
+    calcAll();
+
+    // تحديث قوائم الأسماء والحافظة
     await refreshLens();
-    await refreshLensModal();
     renderApprovedPanel();
+
+    // استعادة افتراضيات التواصل
+    getCommDefaults();
 
     // استعادة آخر معلم تم العمل عليه (إن وجد)
     if(lastCtx && lastCtx.key){
       const rec = await dbGet(lastCtx.key);
       if(rec){
-        // تعبئة الحقول
-        $('#tName').value = rec.name || '';
-        $('#tId').value = rec.nationalId || '';
-        $('#tSpec').value = rec.spec || '';
+        loadedRecord = rec;
+        fixedKey = rec.teacherId || lastCtx.key;
+
+        $('#tName').value  = rec.name || '';
+        $('#tId').value    = rec.nationalId || '';
+        $('#tSpec').value  = rec.spec || '';
         $('#degree').value = rec.degree || 'معلم ممارس';
-        $('#exp').value = rec.exp || '';
-        $('#class').value = rec.class || '';
+        $('#exp').value    = rec.exp || '';
+        $('#class').value  = rec.class || '';
         $('#lesson').value = rec.lesson || '';
 
-        // استعادة الزيارة النشطة (إن كانت صحيحة)
-        if([1,2,3].includes(Number(lastCtx.activeVisit))){
-          activeVisit = Number(lastCtx.activeVisit);
-        }
-
-        fixedKey = rec.teacherId;
-        loadedRecord = rec;
+        // الزيارة النشطة (مع تحقق)
+        activeVisit = [1,2,3].includes(lastCtx.activeVisit) ? lastCtx.activeVisit : 1;
 
         // إعادة الرسم من السجل
         await renderFromRecord();
       }
     }
 
-    // حسابات نهائية
-    calcAll();
-
-    // في حال لم يوجد تاريخ زيارة للزيارة الحالية، أبقِ تاريخ اليوم في العنوان
+    // إن لم يوجد تاريخ زيارة للزيارة الحالية، أبقِ تاريخ اليوم في العنوان
     const curVisitDate = ($('#v'+activeVisit+'h')?.textContent || '').trim();
-    if(!curVisitDate || curVisitDate === '—'){
+    setTitleDate(curVisitDate && curVisitDate !== '—' ? curVisitDate : hijriNow());
+
+    // مزامنة نهائية
+    calcAll();
+  }catch(err){
+    console.error('boot error:', err);
+
+    // تشغيل احتياطي حتى لا تتعطل الصفحة بالكامل
+    try{
+      buildLearning();
+      buildTools();
+      calcAll();
       setTitleDate(hijriNow());
+      await refreshLens();
+      renderApprovedPanel();
+    }catch(e2){
+      console.error('boot fallback error:', e2);
     }
 
-    // حفظ السياق عند المغادرة
-    window.addEventListener('beforeunload', ()=>{
-      try{ saveLastContext(); }catch(e){}
-    });
-
-  }catch(err){
-    console.error('Boot error:', err);
-    // حتى لو حصل خطأ جزئي، نحاول إظهار الواجهة
-    try{ calcAll(); }catch(e){}
-    snack('حدث خطأ أثناء التهيئة الأولية، تم تشغيل الصفحة بشكل جزئي.', false);
+    snack('تم تشغيل الصفحة مع ملاحظة بسيطة. راجع Console إن لزم.', false);
   }
 })();
 </script>
