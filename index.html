@@ -656,7 +656,17 @@ let USE_LS=false, dbPromise=null;
 const lsGet=k=>{try{return JSON.parse(localStorage.getItem(LS_PREFIX+k)||'null');}catch{return null;}};
 const lsSet=(k,v)=>{try{localStorage.setItem(LS_PREFIX+k,JSON.stringify(v));}catch{}};
 const lsClear=()=>{const rm=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(LS_PREFIX))rm.push(k);}rm.forEach(k=>localStorage.removeItem(k));};
-
+function lsClearTeacherRecords(){
+  const rm=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k) continue;
+    if(k.startsWith(LS_PREFIX+'t_') || k === (LS_PREFIX+LS_LAST_CTX)){
+      rm.push(k);
+    }
+  }
+  rm.forEach(k=>localStorage.removeItem(k));
+}
 /* حفظ/استرجاع (إدارة التعليم + المدرسة) */
 (function initHeaderEditable(){
   const dirEl = document.getElementById('h-dir');
@@ -732,7 +742,7 @@ async function dbAll(){ if(USE_LS){
     tx.onerror=()=>r(a);
   });
 }
-async function dbClear(){ lsClear(); if(USE_LS) return; const db=await openDB(); if(!db) return;
+async function dbClear(){ lsClearTeacherRecords(); if(USE_LS) return; const db=await openDB(); if(!db) return;
   await new Promise(r=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).clear().onsuccess=()=>r(true); tx.onerror=()=>r(true); });
 }
 
@@ -1041,17 +1051,16 @@ function currentKey(){
   const name=($('#tName').value||'').trim();
   return name?('name:'+name):'';
 }
-function switchVisit(v){
-  if(v===3){
+async function switchVisit(v){
+  // حفظ فوري قبل مغادرة الزيارة الحالية حتى لا تضيع آخر التعديلات
+  try{ await saveDraft(); }catch(e){ console.warn('save before switch failed', e); }  if(v===3){
     const exp=parseInt(($('#exp').value||'').replace(/\D+/g,''))||0;
     const p1=visitScore(1), p2=visitScore(2);
     const allowed=(p1<50 || p2<50 || (exp>0&&exp<=2));
     if(!allowed){ snack('الزيارة الثالثة مخصصة للدعم (ضعيف أو خبرة ≤ سنتين).',false); return; }
   }
-  activeVisit=v;
-  buildLearning();
-  buildTools();
-  renderFromRecord();
+    activeVisit=v;
+  await renderFromRecord();
   setDonut(1,visitScore(1)); setDonut(2,visitScore(2)); setDonut(3,visitScore(3));
   setVisitMeter();
   setGlobalMeter();
@@ -1314,7 +1323,7 @@ function autoRowsToRecords(rows){
   let headersRaw = headerRowIndex>-1 ? (nonEmpty[headerRowIndex]||[]) : (nonEmpty[0]||[]);
   let dataRows    = headerRowIndex>-1 ? nonEmpty.slice(headerRowIndex+1)   : nonEmpty.slice(1);
 
-  const idxName = findHeaderIndex(headersRaw, ['الاسم','اسم المعلم','اسم الموظف','name','اسم']);
+let idxName = findHeaderIndex(headersRaw, ['الاسم','اسم المعلم','اسم الموظف','name','اسم']);
   let idxId     = findHeaderIndex(headersRaw, ['رقم الهوية','السجل المدني','هوية','رقم السجل','id','الهوية']);
 
   if(idxName===-1 && idxId===-1){
@@ -1694,10 +1703,32 @@ $('#lensTemplate').onclick=()=>{
 <!-- ============ PART 18 / 25 ============ -->
 <script>
 /* ========= التقارير (مربوطة خوارزميًا) ========= */
-const REPORT_HEADER_IMG = 'h11.png';
+const REPORT_HEADER_IMG = (document.getElementById('hdrImg')?.src || 'h11.png');
 
 /* تقرير فردي (الزيارة الحالية) */
-$('#btnReport').onclick = () => openReport();
+$('#btnReport').onclick = async () => {
+  if(!($('#tName').value||'').trim()){
+    snack('اختر معلماً أولاً.', false);
+    return;
+  }
+
+  await saveDraft();
+
+  try{
+    const key = currentKey() || fixedKey;
+    if(key){
+      const rec = await dbGet(key);
+      if(rec){
+        loadedRecord = rec;
+        fixedKey = rec.teacherId || fixedKey;
+      }
+    }
+  }catch(e){
+    console.warn('refresh record before single report failed', e);
+  }
+
+  openReport();
+};
 
 function openReport(){
   const name = ($('#tName').value || '—').trim();
@@ -2356,7 +2387,7 @@ $('#supportArea').addEventListener('input', dfn(()=>{ saveDraft(); }, 250));
       }
     }
     await renderFromRecord();
-    switchVisit(activeVisit||1);
+    await switchVisit(activeVisit||1);
     await refreshLens();
     calcAll();
   })();
