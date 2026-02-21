@@ -1694,7 +1694,7 @@ $('#lensTemplate').onclick=()=>{
 <!-- ============ PART 18 / 25 ============ -->
 <script>
 /* ========= التقارير (مربوطة خوارزميًا) ========= */
-const REPORT_HEADER_IMG = 'logo2.png';
+const REPORT_HEADER_IMG = 'h11.png';
 
 /* تقرير فردي (الزيارة الحالية) */
 $('#btnReport').onclick = () => openReport();
@@ -1710,8 +1710,9 @@ function openReport(){
   const lvl = levelLabel(p);
   const date = $('#v'+activeVisit+'h').textContent || $('#visitDateInline').value || '—';
   const principal = (localStorage.getItem(LS_PREFIX+'principal') || $('#pr1Name').textContent || '—').trim();
-
-  /* ===== التعليم والتعلّم ===== */
+const reportDir = ($('#h-dir').value || 'الإدارة العامة للتعليم بالمنطقة الشرقية').trim();
+const reportSchool = ($('#h-school').value || 'اسم المدرسة هنا').trim();
+const reportTitle = `تقرير زيارة معلم — الزيارة ${vLbl}`;  /* ===== التعليم والتعلّم ===== */
   let learnHTML = '';
   fields.forEach((f,fi)=>{
     let rows = '';
@@ -1758,7 +1759,24 @@ function openReport(){
 <style>
 body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
 .sheet{width:185mm;margin:0 auto;padding:10mm}
-.hdrImg img{width:100%;border-radius:18px}
+.hdrImg{position:relative;width:100%;border-radius:18px;overflow:hidden;background:#0c594e}
+.hdrImg img{width:100%;height:auto;display:block}
+.hdrOverlay{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  padding:10px 18px;
+}
+.hdrText{
+  color:#fff;
+  text-align:center;
+  line-height:1.35;
+  text-shadow:0 2px 10px rgba(0,0,0,.45);
+  max-width:min(62%, 120mm);
+  margin:0 auto;
+}
+.hdrText .l1{font-weight:800;font-size:14px}
+.hdrText .l2{font-weight:700;font-size:12.5px;margin-top:2px}
+.hdrText .l3{font-family:"Cairo","Tajawal";font-weight:700;font-size:15px;margin-top:4px}
 .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0}
 .badge{border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-size:11px;font-weight:700}
 table{width:100%;border-collapse:collapse;font-size:11px}
@@ -1777,7 +1795,16 @@ th{background:#0c594e;color:#fff}
 </head>
 <body>
 <div class="sheet">
-  <div class="hdrImg"><img src="${REPORT_HEADER_IMG}"></div>
+  <div class="hdrImg">
+  <img src="${REPORT_HEADER_IMG}" alt="بنر التقرير">
+  <div class="hdrOverlay">
+    <div class="hdrText">
+      <div class="l1">${reportDir}</div>
+      <div class="l2">${reportSchool}</div>
+      <div class="l3">${reportTitle}</div>
+    </div>
+  </div>
+</div>
 
   <div class="badges">
     <span class="badge">اسم المعلم: <b>${name}</b></span>
@@ -1842,8 +1869,9 @@ function buildReportHTMLForVisit(v){
   const p=visitScore(v), lvl=levelLabel(p);
   const date=$('#v'+v+'h').textContent||'—';
   const principal=(localStorage.getItem(LS_PREFIX+'principal')||$('#pr1Name').textContent||'—').trim();
-
-  let learnHTML='';
+const reportDir = ($('#h-dir').value || 'الإدارة العامة للتعليم بالمنطقة الشرقية').trim();
+const reportSchool = ($('#h-school').value || 'اسم المدرسة هنا').trim();
+const reportTitle = `تقرير زيارة معلم — الزيارة ${vLbl}`;  let learnHTML='';
   fields.forEach((f,fi)=>{
     let rows='';
     f.items.forEach((pair,ii)=>{
@@ -1878,7 +1906,16 @@ function buildReportHTMLForVisit(v){
 
   return `
   <section class="sheet">
-    <div class="hdrImg"><img src="${REPORT_HEADER_IMG}" alt=""></div>
+    <div class="hdrImg">
+  <img src="${REPORT_HEADER_IMG}" alt="بنر التقرير">
+  <div class="hdrOverlay">
+    <div class="hdrText">
+      <div class="l1">${reportDir}</div>
+      <div class="l2">${reportSchool}</div>
+      <div class="l3">${reportTitle}</div>
+    </div>
+  </div>
+</div>
     <div class="badges">
       <span class="badge">اسم المعلم: <b>${name}</b></span>
       <span class="badge">الهوية: ${nid||'—'}</span>
@@ -1932,8 +1969,24 @@ function openAllVisitsReport(){
       body{font-family:"Tajawal",system-ui;color:#123b37;margin:0;background:#fff}
       .sheet{width:185mm; margin:0 auto; padding:10mm 10mm 12mm; box-sizing:border-box; page-break-after:always}
       .sheet:last-child{page-break-after:auto}
-      .hdrImg{width:100%;height:auto;display:block;border-radius:18px;overflow:hidden;margin:0 0 8px 0}
-      .hdrImg img{width:100%;height:auto;display:block}
+     .hdrImg{position:relative;width:100%;height:auto;display:block;border-radius:18px;overflow:hidden;margin:0 0 8px 0;background:#0c594e}
+.hdrImg img{width:100%;height:auto;display:block}
+.hdrOverlay{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  padding:10px 18px;
+}
+.hdrText{
+  color:#fff;
+  text-align:center;
+  line-height:1.35;
+  text-shadow:0 2px 10px rgba(0,0,0,.45);
+  max-width:min(62%, 120mm);
+  margin:0 auto;
+}
+.hdrText .l1{font-weight:800;font-size:14px}
+.hdrText .l2{font-weight:700;font-size:12.5px;margin-top:2px}
+.hdrText .l3{font-family:"Cairo","Tajawal";font-weight:700;font-size:15px;margin-top:4px}
       h3{margin:8px 0 6px;color:#0f7a66;font-family:"Cairo";text-align:center}
       .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px}
       .badge{display:inline-block;border:1px solid #e6efec;background:#e8f4f1;color:#0c594e;border-radius:10px;padding:4px 8px;font-weight:700;font-size:11px}
