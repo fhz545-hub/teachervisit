@@ -115,8 +115,28 @@ h1{
 .btn-ic:hover{background:var(--moe-dark);transform:translateY(-1px)}
 .btn-ic svg{width:18px;height:18px}
 .btn-ic.tiny{padding:6px 8px}
+/* تمييز زرّي النسخة الاحتياطية داخل نافذة الأسماء */
+.btn-ic.data-export{
+  background:#fff;
+  color:var(--moe-dark);
+  border-color:var(--moe-dark);
+}
+.btn-ic.data-export:hover{
+  background:#ecfdf5;
+  color:var(--moe-dark);
+  border-color:var(--moe-dark);
+}
 
-/* ============ PART 2 / 25 ============ */
+.btn-ic.data-import{
+  background:#eef6ff;
+  color:#1d4ed8;
+  border-color:#93c5fd;
+}
+.btn-ic.data-import:hover{
+  background:#dbeafe;
+  color:#1e40af;
+  border-color:#60a5fa;
+}/* ============ PART 2 / 25 ============ */
 /* المؤشرات */
 .hmeterTop{margin:10px auto 6px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
 .hmeterTop .metaLine{
@@ -547,12 +567,27 @@ textarea.comms-preview{min-height:200px;border:1px dashed var(--line);border-rad
     </div>
 
     <div class="lens-body">
-      <div class="comms-row">
-        <input id="lensSearch2" class="fld" placeholder="ابحث بالاسم أو الهوية">
-        <button class="btn-ic tiny" id="lensImport2" title="استيراد Excel/CSV/PDF">⬆️ استيراد</button>
-        <button class="btn-ic tiny" id="lensTemplate2" title="تصدير قالب Excel/CSV">📄 قالب جاهز</button>
-        <input type="file" id="excelInput2" accept=".xlsx,.xls,.xlsm,.xlsb,.csv,.tsv,.txt,.xml,.ods,.fods,.pdf" style="display:none">
-      </div>
+     <div class="comms-row">
+  <input id="lensSearch2" class="fld" placeholder="ابحث بالاسم أو الهوية">
+
+  <!-- استيراد قائمة المعلمين (Excel/CSV/PDF) -->
+  <button class="btn-ic tiny" id="lensImport2" title="استيراد قائمة المعلمين من Excel/CSV/PDF">⬆️ استيراد قائمة</button>
+
+  <!-- تنزيل قالب فارغ -->
+  <button class="btn-ic tiny" id="lensTemplate2" title="تنزيل قالب فارغ لإعداد قائمة المعلمين">📄 قالب جاهز</button>
+
+  <!-- جديد: تصدير نسخة احتياطية كاملة للسجلات -->
+  <button class="btn-ic tiny data-export" id="lensExport2" title="تصدير نسخة احتياطية كاملة لبيانات المعلمين والزيارات (JSON)">📤 تصدير البيانات</button>
+
+  <!-- جديد: استيراد نسخة احتياطية كاملة للسجلات -->
+  <button class="btn-ic tiny data-import" id="lensImportBackup2" title="استيراد نسخة احتياطية لبيانات المعلمين والزيارات (JSON)">📥 استيراد البيانات</button>
+
+  <!-- ملفات الاستيراد الحالية (قائمة المعلمين) -->
+  <input type="file" id="excelInput2" accept=".xlsx,.xls,.xlsm,.xlsb,.csv,.tsv,.txt,.xml,.ods,.fods,.pdf" style="display:none">
+
+  <!-- جديد: ملف النسخة الاحتياطية -->
+  <input type="file" id="backupJsonInput2" accept=".json,application/json" style="display:none">
+</div>
 
       <div class="comms-row">
         <select id="lensSelect2" class="fld" title="المعلمون"></select>
@@ -1536,8 +1571,143 @@ const lensSearch2 = $('#lensSearch2');
 const lensSelect2 = $('#lensSelect2');
 const lensTblBody = $('#lensTblBody');
 const excelInput2 = $('#excelInput2');
+/* ====== أزرار النسخة الاحتياطية داخل نافذة الأسماء ====== */
+const backupJsonInput2 = $('#backupJsonInput2');
 
-function openLensModal(){
+function normalizeBackupTeacherRecord(raw){
+  if(!raw || typeof raw !== 'object') return null;
+
+  const name = String(raw.name ?? raw['الاسم'] ?? '').trim();
+  const nationalId = likelyId(raw.nationalId ?? raw['رقم الهوية'] ?? '');
+  const teacherId = String(raw.teacherId ?? (nationalId || (name ? ('name:' + arNorm(name)) : ''))).trim();
+
+  if(!teacherId) return null;
+
+  const rec = {
+    teacherId,
+    name: name || '—',
+    nationalId,
+    spec: String(raw.spec ?? raw['التخصص'] ?? '').trim(),
+    degree: String(raw.degree ?? raw['الرتبة/المؤهل'] ?? '').trim(),
+    exp: String(raw.exp ?? raw['سنوات الخبرة'] ?? '').trim(),
+    phone: digitsOnly(String(raw.phone ?? raw['رقم الجوال'] ?? '')),
+    email: String(raw.email ?? raw['البريد الإلكتروني'] ?? '').trim(),
+    class: String(raw.class ?? '').trim(),
+    lesson: String(raw.lesson ?? '').trim(),
+    visits: (raw.visits && typeof raw.visits === 'object') ? raw.visits : {
+      1:{finalized:false,draft:zeroSupport()},
+      2:{finalized:false,draft:zeroSupport()},
+      3:{finalized:false,draft:zeroSupport()}
+    }
+  };
+
+  [1,2,3].forEach(v=>{
+    rec.visits[v] = rec.visits[v] || {finalized:false,draft:zeroSupport()};
+    rec.visits[v].finalized = !!rec.visits[v].finalized;
+    rec.visits[v].draft = rec.visits[v].draft || zeroSupport();
+
+    if(!rec.visits[v].draft.ratings) rec.visits[v].draft.ratings = zeroMatrix();
+    if(!Array.isArray(rec.visits[v].draft.tools)) rec.visits[v].draft.tools = [];
+    if(!Array.isArray(rec.visits[v].draft.reasons)) rec.visits[v].draft.reasons = [];
+    if(!Array.isArray(rec.visits[v].draft.support)) rec.visits[v].draft.support = [];
+    if(!Array.isArray(rec.visits[v].draft.supportDetailed)) rec.visits[v].draft.supportDetailed = [];
+    if(typeof rec.visits[v].draft.date !== 'string') rec.visits[v].draft.date = '';
+  });
+
+  return rec;
+}
+
+/* تصدير نسخة احتياطية كاملة (JSON) */
+$('#lensExport2').onclick = async ()=>{
+  try{
+    const list = await dbAll();
+    if(!list || !list.length){
+      snack('لا توجد سجلات لتصديرها.', false);
+      return;
+    }
+
+    const payload = {
+      type: 'yaqoobi_teacher_visits_backup_v1',
+      exportedAt: new Date().toISOString(),
+      count: list.length,
+      records: list
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json;charset=utf-8'
+    });
+
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = `نسخة_احتياطية_زيارة_معلم_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    snack(`تم تصدير ${list.length} سجل كنسخة احتياطية.`, true);
+  }catch(err){
+    console.error(err);
+    snack('تعذر تصدير النسخة الاحتياطية.', false);
+  }
+};
+
+/* فتح اختيار ملف النسخة الاحتياطية */
+$('#lensImportBackup2').onclick = ()=>{
+  if(!backupJsonInput2) return;
+  backupJsonInput2.click();
+};
+
+/* استيراد نسخة احتياطية كاملة (JSON) */
+backupJsonInput2?.addEventListener('change', async (e)=>{
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!f) return;
+
+  try{
+    const txt = await f.text();
+    const parsed = JSON.parse(txt);
+
+    const arr = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.records) ? parsed.records : null);
+    if(!arr){
+      snack('ملف النسخة الاحتياطية غير صالح.', false);
+      return;
+    }
+
+    let imported = 0, skipped = 0;
+
+    for(const raw of arr){
+      const rec = normalizeBackupTeacherRecord(raw);
+      if(!rec){ skipped++; continue; }
+
+      const old = await dbGet(rec.teacherId);
+
+      /* هنا نُقدّم بيانات النسخة الاحتياطية (خصوصًا الزيارات) على البيانات القديمة */
+      const toSave = {
+        ...(old || {}),
+        ...rec,
+        teacherId: rec.teacherId,
+        visits: rec.visits || old?.visits || {
+          1:{finalized:false,draft:zeroSupport()},
+          2:{finalized:false,draft:zeroSupport()},
+          3:{finalized:false,draft:zeroSupport()}
+        }
+      };
+
+      await dbPut(toSave);
+      imported++;
+    }
+
+    await refreshLens();
+    await refreshLensModal();
+
+    snack(`تم استيراد النسخة الاحتياطية: ${imported} سجل${skipped ? (' — تم تجاوز '+skipped) : ''}.`, true);
+  }catch(err){
+    console.error(err);
+    snack('فشل استيراد النسخة الاحتياطية (تأكد أن الملف JSON صحيح).', false);
+  }
+});function openLensModal(){
   lensModal.style.display='flex';
   lensModal.setAttribute('aria-hidden','false');
   refreshLensModal();
