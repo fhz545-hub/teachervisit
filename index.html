@@ -2415,340 +2415,391 @@ $('#apClose').onclick=()=>$('#approvedPanel').style.display='none';
 <script>
 /* ========= المراسلات ========= */
 function getCommDefaults(){
-  const mail=localStorage.getItem(LS_PREFIX+'mailTo')||'';
-  const wa=localStorage.getItem(LS_PREFIX+'waPhone')||'';
-  if(mail) $('#mailTo').value=mail;
-  if(wa) $('#waPhone').value=wa;
+  const mail = localStorage.getItem(LS_PREFIX+'mailTo') || '';
+  const wa   = localStorage.getItem(LS_PREFIX+'waPhone') || '';
+  if($('#mailTo')) $('#mailTo').value = mail;
+  if($('#waPhone')) $('#waPhone').value = wa;
 }
 getCommDefaults();
 
-$('#editDefaults').onclick=()=>{
-  try{
-    localStorage.setItem(LS_PREFIX+'mailTo', ($('#mailTo').value||'').trim());
-    localStorage.setItem(LS_PREFIX+'waPhone', ($('#waPhone').value||'').trim());
-    snack('تم حفظ البريد والواتساب كافتراضي.',true);
-  }catch{
-    snack('تعذر حفظ الافتراضي.',false);
-  }
-};
-
-$('#btnComms').onclick=()=>{
-  const p=$('#commsPanel');
-  p.style.display = (p.style.display==='block') ? 'none' : 'block';
-  if(p.style.display==='block') getCommDefaults();
-};
-$('#commsClose').onclick=()=>$('#commsPanel').style.display='none';
-
-function makeCommsText(){
-  const name=($('#tName').value||'—').trim();
-  const spec=($('#tSpec').value||'—');
-  const vLbl=activeVisit===1?'الأولى':activeVisit===2?'الثانية':'الثالثة (دعم)';
-  const date=$('#v'+activeVisit+'h').textContent||hijriNow();
-  const p=visitScore(activeVisit);
-  const lvl=levelLabel(p);
-  const support=(ensureSupport()||[]).slice(0,4).map(x=>'• '+x.text).join('\n');
-
-  return `السلام عليكم ورحمة الله وبركاته،
-إشارة إلى الزيارة الصفّية (${vLbl}) للمعلم/ة: ${name} (${spec}) بتاريخ: ${date}.
-ملخص مستوى الأداء: ${lvl} (${p}%).
-
-الدعم المقترح (مركز ومحدد):
-${support}
-
-شاكرًا تعاونكم، مع التقدير.`;
+function openCommsPanel(){
+  const p = $('#commsPanel');
+  if(!p) return;
+  p.style.display = 'block';
+  generateCommsText(); // تعبئة أولية
+}
+function closeCommsPanel(){
+  const p = $('#commsPanel');
+  if(!p) return;
+  p.style.display = 'none';
 }
 
-$('#btnMakeComms').onclick=()=>{
-  if(!($('#tName').value||'').trim()){ snack('أدخل اسم المعلم أولاً.',false); return; }
-  $('#commsTxt').value = makeCommsText();
-  snack('تم توليد نص الرسالة.',true);
-};
+function currentTeacherDisplay(){
+  return {
+    name: ($('#tName')?.value || 'المعلم').trim() || 'المعلم',
+    id: ($('#tId')?.value || '').trim(),
+    spec: ($('#tSpec')?.value || '').trim(),
+    lesson: ($('#lesson')?.value || '').trim(),
+    klass: ($('#class')?.value || '').trim(),
+    visitNo: activeVisit,
+    visitLabel: activeVisit===1 ? 'الأولى' : (activeVisit===2 ? 'الثانية' : 'الثالثة (دعم)'),
+    date: ($('#v'+activeVisit+'h')?.textContent || $('#visitDateInline')?.value || hijriNow()).trim(),
+    score: visitScore(activeVisit),
+    level: levelLabel(visitScore(activeVisit))
+  };
+}
 
-$('#btnCopyComms').onclick=async ()=>{
+function getSupportLinesForComms(){
+  const txt = ($('#supportArea')?.value || '').trim();
+  const lines = txt.split('\n').map(s=>s.trim()).filter(Boolean);
+  return lines.slice(0,4);
+}
+
+function generateCommsText(){
+  const c = currentTeacherDisplay();
+  const supports = getSupportLinesForComms();
+  const supportText = supports.length
+    ? supports.map((s,i)=>`${i+1}) ${s}`).join('\n')
+    : '1) متابعة تنفيذ إجراء تطويري قصير مرتبط بهدف الحصة.\n2) توثيق الأثر في الزيارة القادمة.';
+
+  const txt =
+`السلام عليكم ورحمة الله وبركاته،
+أستاذي/أستاذتي ${c.name} حفظكم الله
+
+تم تنفيذ الزيارة الصفية ${c.visitLabel} بتاريخ ${c.date}.
+مؤشر أداء الزيارة: ${c.level} (${c.score}%).
+
+ملخص الدعم المقترح:
+${supportText}
+
+شاكرين لكم جهودكم، ونسأل الله لكم التوفيق والسداد.`;
+
+  if($('#commsTxt')) $('#commsTxt').value = txt;
+  return txt;
+}
+
+$('#btnComms')?.addEventListener('click', openCommsPanel);
+$('#commsClose')?.addEventListener('click', closeCommsPanel);
+$('#commsPanel')?.addEventListener('click', (e)=>{
+  if(e.target === $('#commsPanel')) closeCommsPanel();
+});
+
+$('#editDefaults')?.addEventListener('click', ()=>{
   try{
-    await navigator.clipboard.writeText($('#commsTxt').value||'');
-    snack('تم النسخ.',true);
-  }catch{
-    snack('تعذر النسخ. انسخ يدويًا.',false);
+    localStorage.setItem(LS_PREFIX+'mailTo', ($('#mailTo')?.value || '').trim());
+    localStorage.setItem(LS_PREFIX+'waPhone', digitsOnly(($('#waPhone')?.value || '').trim()));
+    snack('تم حفظ بيانات التواصل كافتراضي.', true);
+  }catch(err){
+    console.error(err);
+    snack('تعذر حفظ البيانات الافتراضية.', false);
   }
-};
+});
 
-$('#btnOpenWA').onclick=()=>{
-  const phone=digitsOnly($('#waPhone').value||'');
-  const txt=encodeURIComponent($('#commsTxt').value||makeCommsText());
-  if(!phone || phone.length<9){ snack('أدخل رقم واتساب بصيغة دولية صحيحة.',false); return; }
-  window.open(`https://wa.me/${phone}?text=${txt}`,'_blank');
-};
+$('#btnFetchFromDB')?.addEventListener('click', async ()=>{
+  try{
+    const key = currentKey() || fixedKey;
+    if(!key){ snack('اختر معلماً أولاً.', false); return; }
+    const rec = await dbGet(key);
+    if(!rec){ snack('لم يتم العثور على سجل المعلم.', false); return; }
 
-$('#btnOpenMail').onclick=()=>{
-  const to=($('#mailTo').value||'').trim();
-  if(!to){ snack('أدخل البريد الإلكتروني.',false); return; }
-  const subj=encodeURIComponent(`ملخص زيارة صفّية (${activeVisit})`);
-  const body=encodeURIComponent($('#commsTxt').value||makeCommsText());
-  window.open(`mailto:${to}?subject=${subj}&body=${body}`,'_self');
-};
+    if($('#mailTo')) $('#mailTo').value = (rec.email || '');
+    if($('#waPhone')) $('#waPhone').value = digitsOnly(rec.phone || '');
 
-$('#btnFetchFromDB').onclick=async ()=>{
-  const key=currentKey() || fixedKey;
-  if(!key){ snack('اختر معلماً أو أدخل الهوية.',false); return; }
-  const rec=await dbGet(key);
-  if(!rec){ snack('لا يوجد سجل محفوظ لهذا المعلم.',false); return; }
-  $('#mailTo').value = rec.email || $('#mailTo').value;
-  $('#waPhone').value = rec.phone || $('#waPhone').value;
-  snack('تم استدعاء بيانات التواصل من السجل.',true);
-};
+    snack('تم استدعاء بيانات التواصل من السجل.', true);
+  }catch(err){
+    console.error(err);
+    snack('تعذر استدعاء بيانات السجل.', false);
+  }
+});
+
+$('#btnMakeComms')?.addEventListener('click', ()=>{
+  generateCommsText();
+  snack('تم توليد نص الرسالة.', true);
+});
+
+$('#btnCopyComms')?.addEventListener('click', async ()=>{
+  const txt = ($('#commsTxt')?.value || '').trim();
+  if(!txt){ snack('لا يوجد نص للنسخ.', false); return; }
+  try{
+    await navigator.clipboard.writeText(txt);
+    snack('تم نسخ الرسالة.', true);
+  }catch{
+    // fallback
+    const ta = $('#commsTxt');
+    ta?.focus();
+    ta?.select();
+    document.execCommand('copy');
+    snack('تم نسخ الرسالة.', true);
+  }
+});
+
+$('#btnOpenWA')?.addEventListener('click', ()=>{
+  const phone = digitsOnly($('#waPhone')?.value || '');
+  const txt = ($('#commsTxt')?.value || '').trim();
+  if(!phone){ snack('أدخل رقم واتساب بصيغة دولية.', false); return; }
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(txt || generateCommsText())}`;
+  window.open(url, '_blank');
+});
+
+$('#btnOpenMail')?.addEventListener('click', ()=>{
+  const mail = ($('#mailTo')?.value || '').trim();
+  const body = ($('#commsTxt')?.value || '').trim() || generateCommsText();
+  const c = currentTeacherDisplay();
+  if(!mail){ snack('أدخل البريد الإلكتروني.', false); return; }
+  const subject = encodeURIComponent(`متابعة زيارة صفية — ${c.name} — الزيارة ${c.visitLabel}`);
+  const href = `mailto:${mail}?subject=${subject}&body=${encodeURIComponent(body)}`;
+  window.location.href = href;
+});
 </script>
+
 <!-- ============ PART 24 / 25 ============ -->
 <script>
-/* ========= شرح الاستخدام + أزرار عائمة + تمرير ========= */
-const HUB_URL = localStorage.getItem(LS_PREFIX+'hub_url') || 'https://fhz545-hub.github.io/Teachers/'; // عدّلها إذا رغبت
+/* ========= شرح الاستخدام + الأزرار المساندة + الحسابات ========= */
 
-function buildHelp(){
-  const html=`
-    <span class="help-badge">1) الأسماء</span>
-    <p>استورد قائمة المعلمين (Excel/CSV) عبر زر <b>🔍 الأسماء</b> ثم <b>⬆️ استيراد</b>. بعد الاستيراد اختر المعلم من القائمة لتعبئة البيانات تلقائيًا.</p>
+const HUB_URL_DEFAULT = 'https://fhz545-hub.github.io/'; // عدّل الرابط إن رغبت
 
-    <span class="help-badge">2) التقييم</span>
-    <p>في جدول <b>عملية التعليم والتعلّم</b> اختر مستوى الأداء لكل عنصر (ضعيف/متوسط/متميز). تظهر تلقائيًا <b>جوانب التميّز</b> و<b>احتياجات التنمية المهنية</b> وفق الاختيار.</p>
+function buildHelpContent(){
+  const body = $('#helpBody');
+  if(!body) return;
 
-    <span class="help-badge">3) الأدوات</span>
-    <p>في <b>الأدوات المساندة</b> حدّد مستوى التفعيل. عند (غير مُفعل/إلى حد ما) اكتب سببًا مختصرًا. هذا يؤثر على المؤشر.</p>
+  body.innerHTML = `
+    <div class="help-badge">الاستيراد</div>
+    <div class="help-badge">التقييم</div>
+    <div class="help-badge">الدعم</div>
+    <div class="help-badge">التقرير</div>
+    <div class="help-badge">النسخ الاحتياطي</div>
 
-    <span class="help-badge">4) الدعم</span>
-    <p>يتولّد <b>الدعم المقدّم</b> تلقائيًا (٤ أسطر) ويمكنك التعديل يدويًا. عند العودة لنفس المعلم لن يفقد التعديل.</p>
+    <h3>طريقة الاستخدام المختصرة</h3>
+    <p>1) افتح <b>الأسماء</b> ثم اختر معلمًا أو استورد قائمة المعلمين من Excel/CSV/PDF النصّي.</p>
+    <p>2) أكمل المعلومات العامة (الاسم/التخصص/الفصل/موضوع الدرس).</p>
+    <p>3) قيّم عناصر التعليم والتعلّم واختر مستوى تفعيل الأدوات المساندة.</p>
+    <p>4) راجع <b>الدعم المقدّم للمعلم</b> (يُولد تلقائيًا) ويمكنك تعديله بما يناسب الزيارة.</p>
+    <p>5) اضغط <b>اعتمد</b> لحفظ الزيارة في السجل.</p>
+    <p>6) استخدم <b>تقرير</b> أو <b>بي دي إف</b> لإخراج تقرير الزيارة الحالية أو التقرير المجمّع (٣ زيارات).</p>
 
-    <span class="help-badge">5) الاعتماد والتقارير</span>
+    <div class="help-note">
+      الزيارة الثالثة (دعم) مخصصة لحالات الدعم التربوي (انخفاض الأداء في إحدى الزيارتين الأولى/الثانية)
+      أو للمعلم حديث الخبرة (≤ سنتين). ويتم فتحها تلقائيًا عند تحقق الشرط.
+    </div>
+
+    <h3>الاستيراد والنسخ الاحتياطي</h3>
     <ul>
-      <li>زر <b>✅ اعتمد</b> يحفظ الزيارة ويثبتها.</li>
-      <li>زر <b>📄 تقرير</b> يفتح تقرير الزيارة الحالية للطباعة/حفظ PDF.</li>
-      <li>زر <b>📄 بي دي إف</b> يفتح تقريرًا مجمّعًا للزيارات الثلاث للطباعة/حفظ PDF.</li>
-      <li>زر <b>✉️ مراسلات</b> لتوليد رسالة جاهزة وفتح واتساب/إيميل.</li>
+      <li>يمكن استيراد قائمة المعلمين من Excel / CSV / PDF النصّي.</li>
+      <li>عند عدم التعرّف التلقائي على العناوين، يفتح <b>مُعالج الاستيراد</b> لتعيين الأعمدة يدويًا.</li>
+      <li>زر <b>تصدير البيانات</b> يحفظ نسخة احتياطية كاملة بصيغة JSON (المعلمين + الزيارات).</li>
+      <li>زر <b>استيراد البيانات</b> يستعيد النسخة الاحتياطية ويُبقي بيانات الزيارات محفوظة.</li>
+    </ul>
+
+    <h3>ملاحظات تربوية وتنظيمية</h3>
+    <ul>
+      <li>الدعم المولّد تلقائيًا هو مقترح مساعد، ويمكن تعديله بما يتوافق مع حاجة المعلم وخطة التحسين.</li>
+      <li>الاعتماد يحفظ الزيارة الحالية فقط، ويمكن لاحقًا تعديلها أو مسحها عند الحاجة.</li>
+      <li>يُفضّل استكمال البيانات الأساسية (اسم المعلم، التخصص، والهوية إن توفرت) قبل الاعتماد.</li>
     </ul>
 
     <div class="help-privacy">
-      <b>تنبيه خصوصية:</b> الحفظ محلي على جهازك (Local/IndexedDB) ولا يُرسل تلقائيًا لأي جهة.
-    </div>
-    <div class="help-note">
-      <b>ملاحظة تنفيذية:</b> الزيارة الثالثة مخصصة للدعم (عند ضعف أو خبرة ≤ سنتين) وفق منطق الاستمارة.
+      جميع البيانات تُحفظ محليًا على جهازك (IndexedDB / LocalStorage) داخل المتصفح، ولا يتم رفعها تلقائيًا.
+      احرص على أخذ نسخة احتياطية دورية بصيغة JSON.
     </div>
   `;
-  $('#helpBody').innerHTML=html;
 }
-buildHelp();
 
-$('#fabHelp').onclick=()=>{ $('#helpPanel').style.display='block'; };
-$('#helpClose').onclick=()=>{ $('#helpPanel').style.display='none'; };
-$('#fabHub').onclick=()=>{ window.open(HUB_URL,'_blank'); };
+function openHelpPanel(){
+  buildHelpContent();
+  const p = $('#helpPanel');
+  if(!p) return;
+  p.style.display = 'block';
+}
+function closeHelpPanel(){
+  const p = $('#helpPanel');
+  if(!p) return;
+  p.style.display = 'none';
+}
 
-$('#scrollUp').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
-$('#scrollDown').onclick=()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+$('#fabHelp')?.addEventListener('click', openHelpPanel);
+$('#helpClose')?.addEventListener('click', closeHelpPanel);
 
-/* زر PDF المجمّع (مُحسَّن لضمان تزامن السجل قبل التوليد) */
-$('#btnPDFAll').onclick = async () => {
-  if(!($('#tName').value||'').trim()){
-    snack('اختر معلماً أولاً.', false);
-    return;
-  }
+/* فتح المنصة */
+$('#fabHub')?.addEventListener('click', ()=>{
+  const url = (localStorage.getItem(LS_PREFIX+'hubUrl') || HUB_URL_DEFAULT).trim();
+  window.open(url, '_blank');
+});
 
-  // احفظ أحدث التغييرات
-  await saveDraft();
+/* أسهم التمرير */
+$('#scrollUp')?.addEventListener('click', ()=>{
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+$('#scrollDown')?.addEventListener('click', ()=>{
+  const h = Math.max(
+    document.body.scrollHeight,
+    document.documentElement.scrollHeight
+  );
+  window.scrollTo({ top: h, behavior: 'smooth' });
+});
 
-  // أعد جلب السجل من قاعدة البيانات لضمان أن التقرير يستخدم أحدث نسخة
-  try{
-    const key = currentKey() || fixedKey;
-    if(key){
-      const rec = await dbGet(key);
-      if(rec){
-        loadedRecord = rec;
-        fixedKey = rec.teacherId || fixedKey;
-      }
-    }
-  }catch(e){
-    console.warn('refresh record before PDF failed', e);
-  }
-
-  openAllVisitsReport();
-};
-
-</script>
-<!-- ============ PART 25 / 25 ============ -->
-<script>
-/* ========= إكمال زر PDF المجمّع + الحسابات العامة + التهيئة ========= */
-
-/* زر PDF المجمّع (مُحسَّن لضمان تزامن السجل قبل التوليد) */
-$('#btnPDFAll').onclick = async () => {
-  if(!($('#tName').value || '').trim()){
-    snack('اختر معلماً أولاً.', false);
-    return;
-  }
-
-  await saveDraft();
-
-  try{
-    const key = currentKey() || fixedKey;
-    if(key){
-      const rec = await dbGet(key);
-      if(rec){
-        loadedRecord = rec;
-        fixedKey = rec.teacherId || fixedKey;
-      }
-    }
-  }catch(e){
-    console.warn('refresh record before all-visits report failed', e);
-  }
-
-  openAllVisitsReport();
-};
-
-/* حساب وتحديث جميع المؤشرات */
+/* الحسابات العامة */
 function calcAll(){
-  syncSignNames();
-  updateToolsSummary();
-
-  setDonut(1, visitScore(1));
-  setDonut(2, visitScore(2));
-  setDonut(3, visitScore(3));
-
-  setVisitMeter();
-  setGlobalMeter();
-
-  const currentDateText =
-    ($('#v'+activeVisit+'h')?.textContent || '').trim() ||
-    ($('#visitDateInline')?.value || '').trim() ||
-    hijriNow();
-
-  setTitleDate(currentDateText);
-}
-
-/* تعبئة الحقول من سجل معلم */
-function fillTeacherFields(rec){
-  $('#tName').value   = rec?.name || '';
-  $('#tId').value     = rec?.nationalId || '';
-  $('#tSpec').value   = rec?.spec || '';
-  $('#degree').value  = rec?.degree || 'معلم ممارس';
-  $('#exp').value     = rec?.exp || '';
-  $('#class').value   = rec?.class || '';
-  $('#lesson').value  = rec?.lesson || '';
-  syncSignNames();
-}
-
-/* حفظ تلقائي عند تعديل الحقول الأساسية */
-const saveFormDebounced = dfn(async ()=>{
   try{
-    // تنظيف الهوية (أرقام فقط بحد أقصى 10)
-    const idEl = $('#tId');
-    if(idEl){
-      idEl.value = digitsOnly(idEl.value || '').slice(0,10);
-    }
-
     syncSignNames();
+    updateToolsSummary?.();
+    setDonut(1, visitScore(1));
+    setDonut(2, visitScore(2));
+    setDonut(3, visitScore(3));
+    setVisitMeter();
+    setGlobalMeter();
+    setTitleDate(
+      ($('#v'+activeVisit+'h')?.textContent && $('#v'+activeVisit+'h').textContent !== '—')
+        ? $('#v'+activeVisit+'h').textContent
+        : ( $('#visitDateInline')?.value || hijriNow() )
+    );
+  }catch(err){
+    console.warn('calcAll warning', err);
+  }
+}
+
+/* تهيئة الإدخال الحي + حفظ تلقائي */
+function bindLiveInputs(){
+  const ids = ['tName','tId','tSpec','degree','exp','class','lesson','h-dir','h-school'];
+  const onChange = dfn(async ()=>{
+    syncSignNames();
+    calcAll();
+    try{ await saveDraft(); }catch(e){ /* تجاهل عند عدم اختيار معلم بعد */ }
+  }, 220);
+
+  ids.forEach(id=>{
+    const el = $('#'+id);
+    if(!el) return;
+
+    el.addEventListener('input', ()=>{
+      // ضبط الهوية إلى أرقام فقط (مع دعم الأرقام العربية)
+      if(id === 'tId'){
+        const curPos = el.selectionStart;
+        const normalized = digitsOnly(el.value).slice(0,10);
+        if(el.value !== normalized){
+          el.value = normalized;
+          try{ el.setSelectionRange(Math.min(curPos, el.value.length), Math.min(curPos, el.value.length)); }catch{}
+        }
+      }
+      onChange();
+    });
+
+    el.addEventListener('change', onChange);
+  });
+
+  $('#supportArea')?.addEventListener('input', dfn(async ()=>{
+    calcAll();
+    try{ await saveDraft(); }catch(e){}
+  }, 220));
+}
+
+/* إغلاق قائمة العدسة القديمة عند النقر خارجها (إن استخدمت) */
+document.addEventListener('click', (e)=>{
+  const m = $('#lensMenu');
+  const w = document.querySelector('.lens-wrap');
+  if(!m || !w) return;
+  if(m.style.display === 'block' && !w.contains(e.target)){
+    m.style.display = 'none';
+  }
+});
+
+/* التقرير المجمّع */
+$('#btnPDFAll')?.addEventListener('click', async ()=>{
+  if(!($('#tName')?.value || '').trim()){
+    snack('اختر معلماً أولاً.', false);
+    return;
+  }
+
+  try{
     await saveDraft();
 
-    // تحديث القوائم (خصوصًا لو تغيّر الاسم/الهوية)
-    await refreshLens();
-    if(lensModal && lensModal.style.display === 'flex'){
-      await refreshLensModal();
+    const key = currentKey() || fixedKey;
+    if(key){
+      const rec = await dbGet(key);
+      if(rec){
+        loadedRecord = rec;
+        fixedKey = rec.teacherId || fixedKey;
+      }
     }
+
+    openAllVisitsReport();
   }catch(err){
-    console.warn('autosave failed', err);
+    console.error(err);
+    snack('تعذر فتح التقرير المجمّع.', false);
   }
-}, 220);
-
-/* ربط الحقول */
-['#tName','#tId','#tSpec','#degree','#exp','#class','#lesson'].forEach(sel=>{
-  const el = $(sel);
-  if(!el) return;
-  el.addEventListener('input', ()=>{
-    // إزالة تمييز الخطأ مباشرة عند البدء بالكتابة
-    el.classList.remove('input-error');
-    saveFormDebounced();
-  });
-  el.addEventListener('change', saveFormDebounced);
 });
+</script>
 
-/* حفظ الدعم اليدوي */
-$('#supportArea')?.addEventListener('input', dfn(async ()=>{
-  try{ await saveDraft(); }catch(e){ console.warn(e); }
-}, 250));
-
-/* تصحيح إدخال الهوية عند اللصق/الكتابة بالأرقام العربية */
-$('#tId')?.addEventListener('blur', ()=>{
-  const el = $('#tId');
-  el.value = digitsOnly(el.value || '').slice(0,10);
-});
-
-/* ===== التهيئة العامة ===== */
+<!-- ============ PART 25 / 25 ============ -->
+<script>
+/* ========= التهيئة النهائية ========= */
 (async function initApp(){
   try{
     fitHeaderToImage();
 
-    // فتح قاعدة البيانات مبكرًا
-    await openDB();
-
-    // تجهيز الواجهة الأساسية
+    // بناء الجداول أولًا
     buildLearning();
     buildTools();
-    syncSignNames();
 
-    // تاريخ افتراضي للعنوان فقط (لا يُفرض على الزيارة حتى يضغط المستخدم على تاريخ الزيارة)
-    $('#visitDateInline').value = hijriNow();
+    // تاريخ افتراضي بجوار العنوان
     setTitleDate(hijriNow());
 
-    // استرجاع آخر سياق (آخر معلم + آخر زيارة)
-    const lastCtx = loadLastContext();
-    if(lastCtx && (lastCtx.activeVisit===1 || lastCtx.activeVisit===2 || lastCtx.activeVisit===3)){
-      activeVisit = lastCtx.activeVisit;
+    // التوقيعات
+    syncSignNames();
+
+    // ربط الحقول بالحفظ التلقائي
+    bindLiveInputs();
+
+    // فتح قاعدة البيانات / التخزين
+    await openDB();
+
+    // تحديث قوائم الأسماء
+    await refreshLens();
+    if($('#lensModal')?.style.display === 'flex'){
+      await refreshLensModal();
     }
 
-    // حاول استرجاع آخر معلم
-    let restored = false;
-    if(lastCtx?.key){
-      const rec = await dbGet(lastCtx.key);
+    // استرجاع آخر سياق (آخر معلم + آخر زيارة)
+    const ctx = loadLastContext();
+    if(ctx?.key){
+      const rec = await dbGet(ctx.key);
       if(rec){
         loadedRecord = rec;
         fixedKey = rec.teacherId;
-        fillTeacherFields(rec);
-        await renderFromRecord();
-        restored = true;
-      }
-    }
 
-    if(!restored){
-      // بدون سجل سابق — ابقِ الواجهة فارغة جاهزة
+        $('#tName').value = rec.name || '';
+        $('#tId').value = rec.nationalId || '';
+        $('#tSpec').value = rec.spec || '';
+        $('#degree').value = rec.degree || 'معلم ممارس';
+        $('#exp').value = rec.exp || '';
+        $('#class').value = rec.class || '';
+        $('#lesson').value = rec.lesson || '';
+
+        await renderFromRecord();
+      }else{
+        calcAll();
+      }
+    }else{
       calcAll();
     }
 
-    // تحديث القوائم
-    await refreshLens();
-    renderApprovedPanel();
-
-    // قيم افتراضية للتوقيع (إن وجدت)
-    const pr = localStorage.getItem(LS_PREFIX+'principal');
-    if(pr){
-      ['pr1Name','pr2Name','pr3Name'].forEach(id=>{
-        const el = $('#'+id);
-        if(el) el.textContent = pr;
-      });
+    // تحديث الحافظة (إن كانت مفتوحة)
+    if($('#approvedPanel')?.style.display === 'block'){
+      renderApprovedPanel();
     }
 
-    // لو كانت نافذة العدسة القديمة ما زالت مستخدمة بمكان ما، نخفيها عند الضغط خارجها
-    document.addEventListener('click', (e)=>{
-      if(!lensMenu || !lensBtn) return;
-      const isInside = lensMenu.contains(e.target) || lensBtn.contains(e.target);
-      if(!isInside) lensMenu.style.display = 'none';
-    });
-
-    // منع فقدان المؤشرات بعد الرجوع من التقارير
-    window.addEventListener('focus', ()=>{
-      try{ calcAll(); }catch{}
+    // أزرار التواريخ (عند النقر على شارة الزيارة)
+    ['1','2','3'].forEach(v=>{
+      const chip = $('#v'+v+'h');
+      if(chip && (!chip.textContent || chip.textContent.trim()==='')){
+        chip.textContent = '—';
+      }
     });
 
   }catch(err){
-    console.error(err);
-    snack('حدث خطأ أثناء تهيئة الصفحة.', false);
+    console.error('initApp failed', err);
+    snack('حدث خطأ أثناء تهيئة الصفحة. راجع وحدة التحكم (Console).', false);
   }
 })();
 </script>
-
 </body>
 </html>
