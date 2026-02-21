@@ -160,6 +160,17 @@ h1{
 .donut .ring{transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dasharray .45s ease,stroke .3s ease}
 .donut text{font-weight:800;fill:var(--moe-dark);font-size:13px}
 .chip{background:var(--moe-lite);border:1px dashed var(--line);padding:4px 10px;border-radius:999px;font-size:clamp(11px,.6vw + 9px,12px);color:var(--moe-dark);cursor:pointer}
+.chip.need-date-attn{
+  border:1px solid var(--warn) !important;
+  background:#fff1f5 !important;
+  color:var(--warn) !important;
+  box-shadow:0 0 0 2px rgba(225,29,72,.12);
+  animation:datePulse 1s ease-in-out 3;
+}
+@keyframes datePulse{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.04)}
+}
 .visitLabel{font-family:"Cairo";font-weight:700;color:var(--moe-dark);font-size:clamp(13px,.8vw + 10px,16px)}
 
 .hmeter{display:flex;flex-direction:column;gap:6px;align-items:center;margin:6px 0 8px}
@@ -1106,6 +1117,33 @@ function setVisitDate(v){
   $('#visitDateInline').value=d;
   if(v===activeVisit) setTitleDate(d); /* التاريخ بجوار العنوان = تاريخ الزيارة الحالية */
 }
+function remindPickVisitDate(){
+  const labels = {
+    1:'الأولى',
+    2:'الثانية',
+    3:'الثالثة (دعم)'
+  };
+
+  // إزالة التمييز من كل شرائح التواريخ
+  ['#v1h','#v2h','#v3h'].forEach(sel => {
+    const el = $(sel);
+    if(el) el.classList.remove('need-date-attn');
+  });
+
+  const chip = $('#v' + activeVisit + 'h');
+  if(!chip) return;
+
+  const txt = (chip.textContent || '').trim();
+  const hasDate = txt && txt !== '—';
+
+  // إذا التاريخ موجود لا ننبه
+  if(hasDate) return;
+
+  chip.classList.add('need-date-attn');
+  setTimeout(()=> chip.classList.remove('need-date-attn'), 3500);
+
+  snack(`بعد اختيار المعلم اضغط على خانة تاريخ الزيارة (${labels[activeVisit]}) لتحديد التاريخ.`, false);
+}
 function currentKey(){
   const id = ($('#tId').value || '').replace(/\D+/g,'');
   const name = ($('#tName').value || '').trim();
@@ -1810,9 +1848,10 @@ lensSelect2.addEventListener('change', async e=>{
   $('#class').value=rec.class||'';
   $('#lesson').value=rec.lesson||'';
 
-  fixedKey=rec.teacherId; loadedRecord=rec;
-  await renderFromRecord();
-  closeLensModal();
+ fixedKey=rec.teacherId; loadedRecord=rec;
+await renderFromRecord();
+setTimeout(remindPickVisitDate, 120);
+closeLensModal();
 });
 
 // أزرار الاستيراد/القالب داخل النافذة
@@ -1834,6 +1873,7 @@ excelInput2.addEventListener('change', async e=>{
       }
       snack(`تم استيراد ${auto.list.length} سجل${auto.list.length>1?'ات':''}. ${auto.skipped?('تجاوز: '+auto.skipped+' صف.'):''}`,true);
       await refreshLensModal();
+snack('تم الاستيراد بنجاح. اختر معلماً ثم اضغط على خانة تاريخ الزيارة لتحديد التاريخ.', true);
     }else{
       openWizard(rows);
     }
@@ -1878,8 +1918,9 @@ lensSelect.addEventListener('change',async e=>{
   $('#class').value=rec.class||'';
   $('#lesson').value=rec.lesson||'';
   fixedKey=rec.teacherId; loadedRecord=rec;
-  await renderFromRecord();
-  lensMenu.style.display='none';
+await renderFromRecord();
+setTimeout(remindPickVisitDate, 120);
+lensMenu.style.display='none';
 });
 
 $('#lensImport').onclick=()=>$('#excelInput').click();
@@ -1899,6 +1940,7 @@ $('#excelInput').addEventListener('change',async e=>{
       }
       snack(`تم استيراد ${auto.list.length} سجل${auto.list.length>1?'ات':''}. ${auto.skipped?('تجاوز: '+auto.skipped+' صف.'):''}`,true);
       await refreshLens();
+snack('تم الاستيراد بنجاح. اختر معلماً ثم اضغط على خانة تاريخ الزيارة لتحديد التاريخ.', true);
     }else{
       openWizard(rows);
     }
@@ -2319,13 +2361,21 @@ $('#btnFinalize').onclick=async ()=>{
     snack('فضلاً أكمل الحقول الأساسية المطلوبة (والهوية إن كُتبت تكون 10 أرقام).',false);
     return;
   }
+
+  const currentVisitDateText = ($('#v'+activeVisit+'h').textContent || '').trim();
+  if(!currentVisitDateText || currentVisitDateText === '—'){
+    remindPickVisitDate();
+    snack('يجب تحديد تاريخ الزيارة أولاً بالضغط على خانة التاريخ.', false);
+    return;
+  }
+
   await saveDraft();
   const rec=await ensureRecord(); if(!rec) return;
   rec.visits[activeVisit].finalized=true;
   await dbPut(rec);
   snack('تم اعتماد الزيارة وحفظها في السجل.',true);
   await refreshLens();
-  renderApprovedPanel(); // تحديث الحافظة
+  renderApprovedPanel();
 };
 
 $('#btnDeleteVisit').onclick=async ()=>{
